@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CMIS 5.2 — Protocol Reference</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0d0f14;
+  --bg2: #13161d;
+  --bg3: #1a1e28;
+  --border: #252a38;
+  --border2: #2e3448;
+  --text: #e2e6f0;
+  --text2: #b8bfd4;
+  --text3: #7e88a8;
+  --accent: #4f8ef7;
+  --accent2: #6dd4a8;
+  --amber: #f0a832;
+  --coral: #e8624a;
+  --purple: #a87ef5;
+  --green: #52c77e;
+  --mono: 'IBM Plex Mono', monospace;
+  --sans: 'IBM Plex Sans', sans-serif;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 15px;
+  line-height: 1.7;
+}
+
+/* ── Layout ── */
+.page-wrap { max-width: 900px; margin: 0 auto; padding: 0 24px 80px; }
+
+/* ── Header ── */
+.site-header {
+  border-bottom: 1px solid var(--border);
+  padding: 48px 0 40px;
+  margin-bottom: 56px;
+  position: relative;
+}
+.site-header::before {
+  content: '';
+  position: absolute;
+  top: 0; left: -24px; right: -24px; height: 3px;
+  background: linear-gradient(90deg, var(--accent) 0%, var(--purple) 50%, var(--accent2) 100%);
+}
+.header-eyebrow {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: .12em;
+  color: var(--accent);
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+.header-title {
+  font-size: clamp(28px, 5vw, 42px);
+  font-weight: 600;
+  letter-spacing: -.02em;
+  color: var(--text);
+  margin-bottom: 10px;
+}
+.header-sub {
+  font-size: 15px;
+  color: var(--text2);
+  max-width: 560px;
+}
+.header-badges {
+  display: flex;
+  gap: 8px;
+  margin-top: 20px;
+  flex-wrap: wrap;
+}
+.badge {
+  font-family: var(--mono);
+  font-size: 11px;
+  padding: 3px 10px;
+  border-radius: 4px;
+  border: 1px solid var(--border2);
+  color: var(--text3);
+}
+
+/* ── TOC ── */
+.toc {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 20px 24px;
+  margin-bottom: 56px;
+}
+.toc-title {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: .1em;
+  color: var(--text3);
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+.toc-list { list-style: none; }
+.toc-list li { display: flex; align-items: baseline; gap: 10px; padding: 4px 0; }
+.toc-list a {
+  color: var(--text2);
+  text-decoration: none;
+  font-size: 14px;
+  transition: color .15s;
+}
+.toc-list a:hover { color: var(--accent); }
+.toc-num {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text3);
+  min-width: 20px;
+}
+
+/* ── Sections ── */
+.section { margin-bottom: 72px; }
+.section-label {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: .1em;
+  color: var(--text3);
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+.section-title {
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -.01em;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+.section-desc {
+  color: var(--text2);
+  font-size: 14px;
+  max-width: 640px;
+  margin-bottom: 28px;
+  line-height: 1.65;
+}
+.divider {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 56px 0;
+}
+
+/* ── Card wrapper for diagrams ── */
+.card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.card-inner { padding: 28px 24px; }
+
+/* ── SVG overrides (theme tokens mapped to dark palette) ── */
+svg {
+  --p: #4f8ef7;
+  --s: #6dd4a8;
+  --t: #a8b0c8;
+  --bg2: #1a1e28;
+  --b: #252a38;
+}
+
+/* SVG class remapping for dark theme */
+.c-blue   rect, .c-blue   circle, .c-blue   ellipse { fill:#152340; stroke:#2a5aa0; }
+.c-blue   .th { fill:#7ab3f8; }
+.c-blue   .ts { fill:#5080c0; }
+.c-teal   rect, .c-teal   circle, .c-teal   ellipse { fill:#0e2820; stroke:#1a6045; }
+.c-teal   .th { fill:#5ed4a0; }
+.c-teal   .ts { fill:#3a9068; }
+.c-purple rect, .c-purple circle, .c-purple ellipse { fill:#1c1535; stroke:#5038a0; }
+.c-purple .th { fill:#b090f8; }
+.c-purple .ts { fill:#7860c0; }
+.c-amber  rect, .c-amber  circle, .c-amber  ellipse { fill:#281c08; stroke:#8a5a10; }
+.c-amber  .th { fill:#f0b050; }
+.c-amber  .ts { fill:#b07828; }
+.c-coral  rect, .c-coral  circle, .c-coral  ellipse { fill:#2a1210; stroke:#903028; }
+.c-coral  .th { fill:#f09080; }
+.c-coral  .ts { fill:#c05848; }
+.c-green  rect, .c-green  circle, .c-green  ellipse { fill:#0e2418; stroke:#286838; }
+.c-green  .th { fill:#70d898; }
+.c-green  .ts { fill:#48a868; }
+.c-gray   rect, .c-gray   circle, .c-gray   ellipse { fill:#181c28; stroke:#303850; }
+.c-gray   .th { fill:#9098b8; }
+.c-gray   .ts { fill:#606880; }
+.c-red    rect, .c-red    circle, .c-red    ellipse { fill:#2a1010; stroke:#902020; }
+.c-red    .th { fill:#f08080; }
+.c-red    .ts { fill:#b84848; }
+.box      { fill:#13161d; stroke:#252a38; }
+.t  { fill:#e2e6f0; font-family:'IBM Plex Sans',sans-serif; font-size:14px; }
+.th { fill:#e2e6f0; font-family:'IBM Plex Sans',sans-serif; font-size:14px; font-weight:500; }
+.ts { fill:#a8b0c8; font-family:'IBM Plex Sans',sans-serif; font-size:12px; }
+.arr { stroke:#6e7898; stroke-width:1.5; fill:none; }
+.leader { stroke:#6e7898; stroke-width:0.5; stroke-dasharray:4 3; fill:none; }
+.node { cursor:pointer; }
+.node:hover rect, .node:hover circle { opacity:.85; }
+
+/* ── Stepper (DP state machine) ── */
+.stepper-wrap { padding: 0; }
+.stepper-dots { display:flex; gap:8px; justify-content:center; margin-bottom:20px; }
+.sdot { width:10px; height:10px; border-radius:50%; background:var(--border2); display:inline-block; transition:background .25s; }
+.sdot.on { background:var(--accent); }
+.stage { display:none; }
+.stage.active { display:block; }
+.stage-card {
+  border: 1px solid var(--border2);
+  border-radius: 10px;
+  padding: 20px;
+}
+.stage-header { display:flex; align-items:center; gap:10px; margin-bottom:14px; }
+.state-dot { width:12px; height:12px; border-radius:50%; flex-shrink:0; }
+.state-name { font-size:16px; font-weight:500; color:var(--text); }
+.state-code { font-family:var(--mono); font-size:12px; color:var(--text3); margin-left:auto; }
+.stage-desc { font-size:14px; color:var(--text2); margin:0 0 14px; line-height:1.65; }
+.action-box {
+  background: var(--bg3);
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 14px;
+}
+.action-label { font-size:11px; color:var(--text3); text-transform:uppercase; letter-spacing:.06em; margin-bottom:5px; }
+.action-text { font-size:13px; color:var(--text); line-height:1.55; }
+.reg-pills { display:flex; flex-wrap:wrap; gap:6px; }
+.pill {
+  font-family:var(--mono);
+  font-size:11px;
+  padding:2px 9px;
+  border-radius:20px;
+  border:1px solid var(--border2);
+  color:var(--text3);
+  background:var(--bg3);
+}
+.stepper-nav {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-top:16px;
+}
+.stepper-nav button {
+  font-family:var(--sans);
+  font-size:13px;
+  padding:6px 14px;
+  border-radius:6px;
+  border:1px solid var(--border2);
+  background:transparent;
+  color:var(--text2);
+  cursor:pointer;
+  transition:all .15s;
+}
+.stepper-nav button:hover { background:var(--bg3); color:var(--text); }
+.stepper-nav button:disabled { opacity:.3; cursor:default; }
+.stepper-pos { font-size:13px; color:var(--text3); font-family:var(--mono); }
+
+/* ── Reference table ── */
+.ref-table {
+  width:100%;
+  border-collapse:collapse;
+  font-size:13px;
+}
+.ref-table th {
+  font-family:var(--mono);
+  font-size:11px;
+  letter-spacing:.06em;
+  color:var(--text3);
+  text-transform:uppercase;
+  text-align:left;
+  padding:8px 14px;
+  border-bottom:1px solid var(--border);
+  background:var(--bg3);
+}
+.ref-table td {
+  padding:10px 14px;
+  border-bottom:1px solid var(--border);
+  color:var(--text2);
+  vertical-align:top;
+}
+.ref-table td:first-child {
+  font-family:var(--mono);
+  font-size:12px;
+  color:var(--accent);
+  white-space:nowrap;
+}
+.ref-table tr:last-child td { border-bottom:none; }
+.ref-table tr:hover td { background:var(--bg3); }
+
+/* ── Page map summary table ── */
+.page-map { width:100%; border-collapse:collapse; font-size:13px; }
+.page-map th {
+  font-family:var(--mono);
+  font-size:11px;
+  color:var(--text3);
+  text-transform:uppercase;
+  letter-spacing:.06em;
+  padding:8px 14px;
+  text-align:left;
+  border-bottom:1px solid var(--border);
+  background:var(--bg3);
+}
+.page-map td {
+  padding:9px 14px;
+  border-bottom:1px solid var(--border);
+  color:var(--text2);
+  vertical-align:top;
+}
+.page-map td:first-child {
+  font-family:var(--mono);
+  font-size:12px;
+  color:var(--purple);
+}
+.page-map td:nth-child(2) {
+  font-family:var(--mono);
+  font-size:11px;
+  color:var(--text3);
+}
+.page-map tr:last-child td { border-bottom:none; }
+.page-map tr:hover td { background:var(--bg3); }
+
+/* ── Footer ── */
+.footer {
+  border-top:1px solid var(--border);
+  padding-top:32px;
+  margin-top:72px;
+  font-size:12px;
+  color:var(--text3);
+  font-family:var(--mono);
+  display:flex;
+  justify-content:space-between;
+  flex-wrap:wrap;
+  gap:8px;
+}
+</style>
+</head>
+<body>
+<div class="page-wrap">
+
+<!-- ═══════════════════════════════════════════
+     HEADER
+════════════════════════════════════════════ -->
+<header class="site-header">
+  <div class="header-eyebrow">SFF Committee Standard</div>
+  <h1 class="header-title">CMIS 5.2 Protocol Reference</h1>
+  <p class="header-sub">Common Management Interface Specification — memory map, state machines, application select, VDM diagnostics, and CDB protocol for QSFP-DD / OSFP / SFP-DD transceivers.</p>
+  <div class="header-badges">
+    <span class="badge">QSFP-DD</span>
+    <span class="badge">OSFP</span>
+    <span class="badge">SFP-DD</span>
+    <span class="badge">I²C / SMBus</span>
+    <span class="badge">Rev 5.2</span>
+  </div>
+</header>
+
+<!-- ═══════════════════════════════════════════
+     TABLE OF CONTENTS
+════════════════════════════════════════════ -->
+<nav class="toc">
+  <div class="toc-title">Contents</div>
+  <ul class="toc-list">
+    <li><span class="toc-num">01</span><a href="#mem-map">Memory map architecture</a></li>
+    <li><span class="toc-num">02</span><a href="#page-ref">Page reference table</a></li>
+    <li><span class="toc-num">03</span><a href="#module-sm">Module state machine</a></li>
+    <li><span class="toc-num">04</span><a href="#dp-sm">Data path state machine</a></li>
+    <li><span class="toc-num">05</span><a href="#app-select">Application select procedure</a></li>
+    <li><span class="toc-num">06</span><a href="#vdm">VDM — Page 20h structure</a></li>
+    <li><span class="toc-num">07</span><a href="#cdb">CDB — Command Data Buffer protocol</a></li>
+    <li><span class="toc-num">08</span><a href="#cdb-codes">CDB command code reference</a></li>
+  </ul>
+</nav>
+
+<!-- ═══════════════════════════════════════════
+     01 — MEMORY MAP
+════════════════════════════════════════════ -->
+<section class="section" id="mem-map">
+  <div class="section-label">01</div>
+  <h2 class="section-title">Memory map architecture</h2>
+  <p class="section-desc">CMIS uses a two-window address model over I²C. The lower 128 bytes (0–127) are always accessible without paging. Byte 127 is the page select register that switches the upper 128 bytes (128–255) to different page views.</p>
+  <div class="card">
+    <div class="card-inner">
+      <svg width="100%" viewBox="0 0 680 620" role="img">
+        <title>CMIS 5.2 memory map</title>
+        <desc>Lower memory bytes 0–127 always accessible; upper memory bytes 128–255 switched by page select register</desc>
+        <defs><marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+        <g class="c-teal">
+          <rect x="30" y="52" width="270" height="540" rx="14" stroke-width="0.5"/>
+          <text class="th" x="165" y="78" text-anchor="middle">Lower memory</text>
+          <text class="ts" x="165" y="95" text-anchor="middle">Bytes 0–127 · always accessible</text>
+        </g>
+        <g class="c-teal"><rect x="44" y="108" width="242" height="44" rx="6" stroke-width="0.5"/><text class="th" x="165" y="127" text-anchor="middle" dominant-baseline="central">Identifier &amp; revision</text><text class="ts" x="165" y="142" text-anchor="middle" dominant-baseline="central">Byte 0–1: module type, CMIS rev</text></g>
+        <g class="c-teal"><rect x="44" y="160" width="242" height="44" rx="6" stroke-width="0.5"/><text class="th" x="165" y="179" text-anchor="middle" dominant-baseline="central">Module state &amp; status</text><text class="ts" x="165" y="194" text-anchor="middle" dominant-baseline="central">Byte 3: ModuleState machine</text></g>
+        <g class="c-teal"><rect x="44" y="212" width="242" height="44" rx="6" stroke-width="0.5"/><text class="th" x="165" y="231" text-anchor="middle" dominant-baseline="central">Interrupt flags</text><text class="ts" x="165" y="246" text-anchor="middle" dominant-baseline="central">Byte 8–31: latched fault flags</text></g>
+        <g class="c-teal"><rect x="44" y="264" width="242" height="44" rx="6" stroke-width="0.5"/><text class="th" x="165" y="283" text-anchor="middle" dominant-baseline="central">Module-level monitoring</text><text class="ts" x="165" y="298" text-anchor="middle" dominant-baseline="central">Temp, Vcc (real-time)</text></g>
+        <g class="c-teal"><rect x="44" y="316" width="242" height="44" rx="6" stroke-width="0.5"/><text class="th" x="165" y="335" text-anchor="middle" dominant-baseline="central">Control registers</text><text class="ts" x="165" y="350" text-anchor="middle" dominant-baseline="central">Reset, low-power, DP init</text></g>
+        <g class="c-teal"><rect x="44" y="368" width="242" height="44" rx="6" stroke-width="0.5"/><text class="th" x="165" y="387" text-anchor="middle" dominant-baseline="central">Data path status</text><text class="ts" x="165" y="402" text-anchor="middle" dominant-baseline="central">DPState per lane</text></g>
+        <g class="c-teal"><rect x="44" y="420" width="242" height="44" rx="6" stroke-width="0.5"/><text class="th" x="165" y="439" text-anchor="middle" dominant-baseline="central">CDB command interface</text><text class="ts" x="165" y="454" text-anchor="middle" dominant-baseline="central">Byte 37–38: command / reply</text></g>
+        <g class="c-amber">
+          <rect x="44" y="536" width="242" height="44" rx="6" stroke-width="1"/>
+          <text class="th" x="165" y="555" text-anchor="middle" dominant-baseline="central">Page select (byte 127)</text>
+          <text class="ts" x="165" y="570" text-anchor="middle" dominant-baseline="central">Switches upper memory page</text>
+        </g>
+        <g class="c-purple">
+          <rect x="318" y="52" width="342" height="540" rx="14" stroke-width="0.5"/>
+          <text class="th" x="489" y="78" text-anchor="middle">Upper memory</text>
+          <text class="ts" x="489" y="95" text-anchor="middle">Bytes 128–255 · page-switched</text>
+        </g>
+        <g class="c-purple"><rect x="332" y="108" width="314" height="56" rx="6" stroke-width="0.5"/><text class="th" x="489" y="130" text-anchor="middle" dominant-baseline="central">Page 00h — module identity</text><text class="ts" x="489" y="148" text-anchor="middle" dominant-baseline="central">Vendor, part number, serial, date</text></g>
+        <g class="c-purple"><rect x="332" y="172" width="314" height="56" rx="6" stroke-width="0.5"/><text class="th" x="489" y="194" text-anchor="middle" dominant-baseline="central">Page 01h — capabilities</text><text class="ts" x="489" y="212" text-anchor="middle" dominant-baseline="central">Supported apps, SI, VDM flags</text></g>
+        <g class="c-purple"><rect x="332" y="236" width="314" height="56" rx="6" stroke-width="0.5"/><text class="th" x="489" y="258" text-anchor="middle" dominant-baseline="central">Page 02h — thresholds</text><text class="ts" x="489" y="276" text-anchor="middle" dominant-baseline="central">Alarm / warning levels</text></g>
+        <g class="c-purple"><rect x="332" y="300" width="314" height="56" rx="6" stroke-width="0.5"/><text class="th" x="489" y="322" text-anchor="middle" dominant-baseline="central">Page 04h — CDB response</text><text class="ts" x="489" y="340" text-anchor="middle" dominant-baseline="central">Command data buffer read-back</text></g>
+        <g class="c-coral"><rect x="332" y="364" width="314" height="68" rx="6" stroke-width="0.5"/><text class="th" x="489" y="386" text-anchor="middle" dominant-baseline="central">Pages 10h–1Fh — data path config</text><text class="ts" x="489" y="404" text-anchor="middle" dominant-baseline="central">AppSel, SI tune, Tx/Rx control</text><text class="ts" x="489" y="420" text-anchor="middle" dominant-baseline="central">Bank 0–3 for 8+ lane modules</text></g>
+        <g class="c-coral"><rect x="332" y="440" width="314" height="56" rx="6" stroke-width="0.5"/><text class="th" x="489" y="462" text-anchor="middle" dominant-baseline="central">Pages 20h–2Fh — diagnostics</text><text class="ts" x="489" y="480" text-anchor="middle" dominant-baseline="central">Optical power, bias, SNR, BER</text></g>
+        <g class="c-gray"><rect x="332" y="504" width="314" height="44" rx="6" stroke-width="0.5"/><text class="th" x="489" y="523" text-anchor="middle" dominant-baseline="central">Pages 40h–FFh — vendor specific</text><text class="ts" x="489" y="538" text-anchor="middle" dominant-baseline="central">OEM / proprietary extensions</text></g>
+        <path d="M 286 558 Q 302 558 302 130 L 318 130" fill="none" stroke="#5038a0" stroke-width="1.5" marker-end="url(#arrow)"/>
+        <text class="ts" x="294" y="476" text-anchor="middle" transform="rotate(-90 294 476)">selects</text>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- ═══════════════════════════════════════════
+     02 — PAGE REFERENCE TABLE
+════════════════════════════════════════════ -->
+<section class="section" id="page-ref">
+  <div class="section-label">02</div>
+  <h2 class="section-title">Page reference table</h2>
+  <p class="section-desc">Quick lookup for every standard CMIS page. Pages are selected by writing to byte 127 (page select register) in the lower memory.</p>
+  <div class="card">
+    <table class="page-map">
+      <thead>
+        <tr><th>Page</th><th>Bytes</th><th>Name</th><th>Key contents</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Lower</td><td>0–127</td><td>Lower memory (always mapped)</td><td>Module state, interrupt flags, temperature, Vcc, CDB cmd/reply, page select</td></tr>
+        <tr><td>00h</td><td>128–255</td><td>Module identity</td><td>Vendor name, part number, serial number, date code, CLEI code</td></tr>
+        <tr><td>01h</td><td>128–255</td><td>Capabilities &amp; advertisement</td><td>Supported applications table, VDM support flag, loopback support, CDB support</td></tr>
+        <tr><td>02h</td><td>128–255</td><td>Threshold values</td><td>Alarm and warning thresholds for Temp, Vcc, Tx power, Rx power, bias current</td></tr>
+        <tr><td>04h</td><td>128–255</td><td>CDB response (LPL)</td><td>Local payload reply buffer after a CDB command completes</td></tr>
+        <tr><td>05h</td><td>128–255</td><td>CDB response (EPL)</td><td>Extended payload reply for commands returning &gt;124 bytes</td></tr>
+        <tr><td>09h</td><td>128–255</td><td>CDB command (LPL)</td><td>Command header (B128–131) + local payload buffer (B132–255) written by host</td></tr>
+        <tr><td>0Ah / 0Bh</td><td>128–255</td><td>CDB command (EPL)</td><td>Extended payload for commands sending &gt;124 bytes to the module</td></tr>
+        <tr><td>10h</td><td>128–255</td><td>Data path config (Bank 0)</td><td>AppSel per lane, DPDeinit, Tx/Rx disable, SI presets, output amplitude</td></tr>
+        <tr><td>11h</td><td>128–255</td><td>Lane monitoring (Bank 0)</td><td>Tx output power, Rx input power, bias current, eSNR per lane (real-time)</td></tr>
+        <tr><td>20h</td><td>128–255</td><td>VDM config &amp; module samples</td><td>VDM descriptor table (B128–191) + module-level sample values (B192–255)</td></tr>
+        <tr><td>21h–2Fh</td><td>128–255</td><td>VDM per-lane samples</td><td>Per-lane real-time observable values indexed by descriptor table</td></tr>
+        <tr><td>40h–FFh</td><td>128–255</td><td>Vendor-specific</td><td>OEM extensions, proprietary diagnostics, custom feature pages</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- ═══════════════════════════════════════════
+     03 — MODULE STATE MACHINE
+════════════════════════════════════════════ -->
+<section class="section" id="module-sm">
+  <div class="section-label">03</div>
+  <h2 class="section-title">Module state machine</h2>
+  <p class="section-desc">Before any data path can be configured, the module must reach <code style="font-family:var(--mono);font-size:13px;color:var(--accent2)">ModuleReady</code>. The host drives this by controlling the LPMode hardware signal and writing to control registers. State is reported in Lower byte 3 bits [2:0].</p>
+  <div class="card">
+    <div class="card-inner">
+      <svg width="100%" viewBox="0 0 680 460" role="img">
+        <title>CMIS 5.2 module state machine</title>
+        <desc>Seven module states from reset through ready, governed by ModuleState register byte 3</desc>
+        <defs><marker id="arrow2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+        <text class="ts" x="340" y="26" text-anchor="middle">byte 3 bits [2:0]</text>
+        <g class="c-gray"><rect x="30" y="50" width="150" height="52" rx="8" stroke-width="0.5"/><text class="th" x="105" y="71" text-anchor="middle" dominant-baseline="central">ModuleReset</text><text class="ts" x="105" y="89" text-anchor="middle" dominant-baseline="central">State 0 · hw reset</text></g>
+        <g class="c-blue"><rect x="265" y="50" width="150" height="52" rx="8" stroke-width="0.5"/><text class="th" x="340" y="71" text-anchor="middle" dominant-baseline="central">ModuleLowPwr</text><text class="ts" x="340" y="89" text-anchor="middle" dominant-baseline="central">State 1 · low-power</text></g>
+        <g class="c-amber"><rect x="500" y="50" width="150" height="52" rx="8" stroke-width="0.5"/><text class="th" x="575" y="71" text-anchor="middle" dominant-baseline="central">ModulePwrUp</text><text class="ts" x="575" y="89" text-anchor="middle" dominant-baseline="central">State 2 · ramping</text></g>
+        <path d="M180 76 L263 76" fill="none" stroke="#6e7898" stroke-width="1.5" marker-end="url(#arrow2)"/>
+        <text class="ts" x="222" y="68" text-anchor="middle">LPMode=0</text>
+        <path d="M415 76 L498 76" fill="none" stroke="#6e7898" stroke-width="1.5" marker-end="url(#arrow2)"/>
+        <text class="ts" x="457" y="68" text-anchor="middle">host init</text>
+        <g class="c-teal"><rect x="265" y="180" width="150" height="52" rx="8" stroke-width="1"/><text class="th" x="340" y="201" text-anchor="middle" dominant-baseline="central">ModuleReady</text><text class="ts" x="340" y="218" text-anchor="middle" dominant-baseline="central">State 3 · operational</text></g>
+        <path d="M575 102 Q575 160 417 206" fill="none" stroke="#6e7898" stroke-width="1.5" marker-end="url(#arrow2)"/>
+        <text class="ts" x="526" y="160" text-anchor="middle">pwr stable</text>
+        <g class="c-coral"><rect x="30" y="310" width="150" height="52" rx="8" stroke-width="0.5"/><text class="th" x="105" y="331" text-anchor="middle" dominant-baseline="central">ModuleFault</text><text class="ts" x="105" y="349" text-anchor="middle" dominant-baseline="central">State 4 · hw fault</text></g>
+        <g class="c-amber"><rect x="265" y="310" width="150" height="52" rx="8" stroke-width="0.5"/><text class="th" x="340" y="331" text-anchor="middle" dominant-baseline="central">ModulePwrDn</text><text class="ts" x="340" y="349" text-anchor="middle" dominant-baseline="central">State 5 · powering down</text></g>
+        <g class="c-gray"><rect x="500" y="310" width="150" height="52" rx="8" stroke-width="0.5"/><text class="th" x="575" y="331" text-anchor="middle" dominant-baseline="central">ModuleProgError</text><text class="ts" x="575" y="349" text-anchor="middle" dominant-baseline="central">State 6 · fw error</text></g>
+        <path d="M265 210 Q105 210 105 308" fill="none" stroke="#6e7898" stroke-width="1.5" marker-end="url(#arrow2)"/>
+        <text class="ts" x="68" y="260" text-anchor="middle">fault</text>
+        <path d="M340 232 L340 308" fill="none" stroke="#6e7898" stroke-width="1.5" marker-end="url(#arrow2)"/>
+        <text class="ts" x="366" y="270" text-anchor="middle">LPMode=1</text>
+        <path d="M415 210 Q575 210 575 308" fill="none" stroke="#6e7898" stroke-width="1.5" marker-end="url(#arrow2)"/>
+        <text class="ts" x="620" y="260" text-anchor="middle">fw err</text>
+        <path d="M105 362 Q105 430 60 430 Q15 430 15 76 L28 76" fill="none" stroke="#6e7898" stroke-width="1" stroke-dasharray="4 3" marker-end="url(#arrow2)"/>
+        <text class="ts" x="22" y="420">reset</text>
+        <path d="M340 362 L340 400 Q340 430 298 430 Q265 430 265 104" fill="none" stroke="#6e7898" stroke-width="1" stroke-dasharray="4 3" marker-end="url(#arrow2)"/>
+        <text class="ts" x="360" y="420">pwr off</text>
+        <rect x="30" y="395" width="600" height="50" rx="8" fill="none" stroke="#3a4060" stroke-width="0.5" stroke-dasharray="4 3"/>
+        <text class="ts" x="340" y="415" text-anchor="middle">Data Path state machine runs independently per lane once in ModuleReady</text>
+        <text class="ts" x="340" y="432" text-anchor="middle">States: Deactivated → Init → TxTurnOn → DataPathActivated → Fault</text>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- ═══════════════════════════════════════════
+     04 — DATA PATH STATE MACHINE
+════════════════════════════════════════════ -->
+<section class="section" id="dp-sm">
+  <div class="section-label">04</div>
+  <h2 class="section-title">Data path state machine</h2>
+  <p class="section-desc">Each lane has its own DP state machine running inside the module after <code style="font-family:var(--mono);font-size:13px;color:var(--accent2)">ModuleReady</code>. State is reported in Lower byte 26, two bits per lane. Step through all five states below.</p>
+  <div class="card">
+    <div class="card-inner stepper-wrap">
+      <div class="stepper-dots" id="dp-dots"></div>
+      <div id="dp-cards"></div>
+      <div class="stepper-nav">
+        <button id="dp-prev" onclick="dpMv(-1)">← Prev</button>
+        <span class="stepper-pos" id="dp-pos"></span>
+        <button id="dp-next" onclick="dpMv(1)">Next →</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- ═══════════════════════════════════════════
+     05 — APPLICATION SELECT
+════════════════════════════════════════════ -->
+<section class="section" id="app-select">
+  <div class="section-label">05</div>
+  <h2 class="section-title">Application select procedure</h2>
+  <p class="section-desc">The 5-step sequence to bring a lane from <code style="font-family:var(--mono);font-size:13px;color:var(--accent2)">Deactivated</code> to <code style="font-family:var(--mono);font-size:13px;color:var(--accent2)">DataPathActivated</code>. The DPDeinit pulse (assert then de-assert) is the trigger that starts module initialization.</p>
+  <div class="card">
+    <div class="card-inner">
+      <svg width="100%" viewBox="0 0 680 516" role="img">
+        <title>CMIS 5.2 application select procedure</title>
+        <desc>Five-step flowchart for configuring a data path via AppSel and DPDeinit</desc>
+        <defs><marker id="arrow3" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+        <text class="th" x="300" y="28" text-anchor="middle">Application select procedure</text>
+        <g class="c-blue"><rect x="165" y="50" width="270" height="56" rx="8" stroke-width="0.5"/><text class="th" x="300" y="71" text-anchor="middle" dominant-baseline="central">Read app table — Page 01h</text><text class="ts" x="300" y="89" text-anchor="middle" dominant-baseline="central">discover supported applications</text></g>
+        <line x1="435" y1="78" x2="446" y2="78" stroke="#3a4060" stroke-width="0.5"/>
+        <text class="ts" x="450" y="82">B128-191: AppCode, media type</text>
+        <line x1="300" y1="106" x2="300" y2="144" stroke="#6e7898" stroke-width="1.5" fill="none" marker-end="url(#arrow3)"/>
+        <g class="c-purple"><rect x="165" y="144" width="270" height="56" rx="8" stroke-width="0.5"/><text class="th" x="300" y="165" text-anchor="middle" dominant-baseline="central">Write AppSel — Page 10h</text><text class="ts" x="300" y="183" text-anchor="middle" dominant-baseline="central">B145-152: AppSel + SI config</text></g>
+        <line x1="435" y1="172" x2="446" y2="172" stroke="#3a4060" stroke-width="0.5"/>
+        <text class="ts" x="450" y="176">per-lane 4-bit nibble</text>
+        <line x1="300" y1="200" x2="300" y2="238" stroke="#6e7898" stroke-width="1.5" fill="none" marker-end="url(#arrow3)"/>
+        <g class="c-amber"><rect x="165" y="238" width="270" height="56" rx="8" stroke-width="0.5"/><text class="th" x="300" y="259" text-anchor="middle" dominant-baseline="central">Trigger DPInit</text><text class="ts" x="300" y="277" text-anchor="middle" dominant-baseline="central">B143: write 0xFF then 0x00</text></g>
+        <line x1="435" y1="266" x2="446" y2="266" stroke="#3a4060" stroke-width="0.5"/>
+        <text class="ts" x="450" y="270">rising edge = init trigger</text>
+        <line x1="300" y1="294" x2="300" y2="332" stroke="#6e7898" stroke-width="1.5" fill="none" marker-end="url(#arrow3)"/>
+        <g class="c-teal"><rect x="165" y="332" width="270" height="56" rx="8" stroke-width="0.5"/><text class="th" x="300" y="353" text-anchor="middle" dominant-baseline="central">Poll DPState — Lower B26</text><text class="ts" x="300" y="371" text-anchor="middle" dominant-baseline="central">wait for 0x3 per lane</text></g>
+        <line x1="435" y1="360" x2="446" y2="360" stroke="#3a4060" stroke-width="0.5"/>
+        <text class="ts" x="450" y="364">2 bits per lane, 8 lanes</text>
+        <path d="M 165 388 L 118 388 L 118 332 L 165 332" fill="none" stroke="#505870" stroke-width="1" stroke-dasharray="4 3" marker-end="url(#arrow3)"/>
+        <text class="ts" x="95" y="362" text-anchor="middle">retry</text>
+        <line x1="300" y1="388" x2="300" y2="426" stroke="#6e7898" stroke-width="1.5" fill="none" marker-end="url(#arrow3)"/>
+        <g class="c-green"><rect x="165" y="426" width="270" height="56" rx="8" stroke-width="0.5"/><text class="th" x="300" y="447" text-anchor="middle" dominant-baseline="central">DataPathActivated</text><text class="ts" x="300" y="465" text-anchor="middle" dominant-baseline="central">traffic flowing — link up</text></g>
+        <line x1="435" y1="454" x2="446" y2="454" stroke="#3a4060" stroke-width="0.5"/>
+        <text class="ts" x="450" y="458">monitor via Page 11h</text>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- ═══════════════════════════════════════════
+     06 — VDM
+════════════════════════════════════════════ -->
+<section class="section" id="vdm">
+  <div class="section-label">06</div>
+  <h2 class="section-title">VDM — Versatile Diagnostic Monitoring</h2>
+  <p class="section-desc">VDM allows the module to report any combination of up to 32 observable parameters (Pre-FEC BER, SNR, CD, OSNR, bias, temperature …) chosen from a standard catalog of Observable IDs. The host reads the descriptor table to know which observables are present, then reads sample values from the corresponding bytes.</p>
+  <div class="card">
+    <div class="card-inner">
+      <svg width="100%" viewBox="0 0 680 468" role="img">
+        <title>CMIS 5.2 VDM Page 20h structure</title>
+        <desc>Structural diagram: descriptor table on left, real-time samples on right, 2-byte entry format at bottom</desc>
+        <defs><marker id="arrow4" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+        <rect class="c-purple" x="20" y="44" width="640" height="308" rx="14" stroke-width="0.5"/>
+        <text class="th" x="340" y="30" text-anchor="middle">Page 20h — VDM structure</text>
+        <text class="ts" x="340" y="66" text-anchor="middle">Enabled via Page 01h B142 · 32 configurable observables</text>
+        <g class="c-blue">
+          <rect x="38" y="78" width="284" height="260" rx="8" stroke-width="0.5"/>
+          <text class="th" x="180" y="100" text-anchor="middle" dominant-baseline="central">Descriptor table</text>
+          <text class="ts" x="180" y="117" text-anchor="middle" dominant-baseline="central">B128–191 · 32 entries × 2 bytes</text>
+          <line x1="55" y1="128" x2="308" y2="128" stroke-width="0.5"/>
+          <text class="ts" x="55" y="148">0x02  Laser temperature (°C)</text>
+          <text class="ts" x="55" y="166">0x03  Bias / TEC current</text>
+          <text class="ts" x="55" y="184">0x10  Pre-FEC BER average</text>
+          <text class="ts" x="55" y="202">0x11  Pre-FEC BER min / max</text>
+          <text class="ts" x="55" y="220">0x20  Rx SNR average</text>
+          <text class="ts" x="55" y="238">0x24  Chromatic dispersion</text>
+          <text class="ts" x="55" y="256">0x28  Rx OSNR (dB)</text>
+          <text class="ts" x="55" y="274">0x30  Modulation bias (mrad)</text>
+          <text class="ts" x="55" y="292">0x40  Laser age indicator</text>
+          <text class="ts" x="55" y="314">… up to 32 configurable entries</text>
+        </g>
+        <line x1="322" y1="208" x2="340" y2="208" stroke="#5038a0" stroke-width="1" marker-end="url(#arrow4)"/>
+        <g class="c-teal">
+          <rect x="340" y="78" width="302" height="260" rx="8" stroke-width="0.5"/>
+          <text class="th" x="491" y="100" text-anchor="middle" dominant-baseline="central">Real-time samples</text>
+          <text class="ts" x="491" y="117" text-anchor="middle" dominant-baseline="central">B192–255 · one value per descriptor</text>
+          <line x1="357" y1="128" x2="628" y2="128" stroke-width="0.5"/>
+          <text class="ts" x="357" y="150">Format: IEEE 754 FP16 (2 bytes)</text>
+          <text class="ts" x="357" y="168">Updated per sample interval</text>
+          <text class="ts" x="357" y="192">Multi-lane bank pages:</text>
+          <text class="ts" x="357" y="210">Page 20h  module-level observables</text>
+          <text class="ts" x="357" y="228">Page 21h  lane 1 samples</text>
+          <text class="ts" x="357" y="246">Page 22h  lane 2 samples</text>
+          <text class="ts" x="357" y="264">Page 23h  lane 3 samples</text>
+          <text class="ts" x="357" y="282">Page 24h  lane 4 samples …</text>
+          <text class="ts" x="357" y="306">Alarms: compare vs Page 02h</text>
+        </g>
+        <text class="ts" x="340" y="372" text-anchor="middle">Descriptor entry — 2 bytes</text>
+        <g class="c-blue"><rect x="20" y="384" width="195" height="52" rx="6" stroke-width="0.5"/><text class="th" x="118" y="404" text-anchor="middle" dominant-baseline="central">Byte 0 [7:1]</text><text class="ts" x="118" y="422" text-anchor="middle" dominant-baseline="central">Observable ID (7 bits)</text></g>
+        <g class="c-amber"><rect x="227" y="384" width="176" height="52" rx="6" stroke-width="0.5"/><text class="th" x="315" y="404" text-anchor="middle" dominant-baseline="central">Byte 0 [0]</text><text class="ts" x="315" y="422" text-anchor="middle" dominant-baseline="central">Threshold ref</text></g>
+        <g class="c-purple"><rect x="415" y="384" width="245" height="52" rx="6" stroke-width="0.5"/><text class="th" x="537" y="404" text-anchor="middle" dominant-baseline="central">Byte 1 [7:0]</text><text class="ts" x="537" y="422" text-anchor="middle" dominant-baseline="central">Lane assignment mask</text></g>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- ═══════════════════════════════════════════
+     07 — CDB FLOW
+════════════════════════════════════════════ -->
+<section class="section" id="cdb">
+  <div class="section-label">07</div>
+  <h2 class="section-title">CDB — Command Data Buffer protocol</h2>
+  <p class="section-desc">CDB is a mailbox protocol for extended management operations not covered by the basic memory map — firmware update, detailed diagnostics, loopback control, and vendor commands. The host writes a command block to Page 09h, triggers it via Lower byte 38, polls for completion, then reads the reply from Page 04h.</p>
+  <div class="card">
+    <div class="card-inner">
+      <svg width="100%" viewBox="0 0 680 598" role="img">
+        <title>CMIS 5.2 CDB protocol flow</title>
+        <desc>Seven-step CDB flow: check ready, write command header, write LPL, trigger, wait busy, check status, read reply</desc>
+        <defs><marker id="arrow5" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+        <text class="th" x="310" y="26" text-anchor="middle">CDB protocol flow</text>
+        <g class="c-gray"><rect x="175" y="42" width="270" height="52" rx="8" stroke-width="0.5"/><text class="th" x="310" y="62" text-anchor="middle" dominant-baseline="central">Check CDB ready</text><text class="ts" x="310" y="79" text-anchor="middle" dominant-baseline="central">Lower B37 bit[0]: BUSY must = 0</text></g>
+        <line x1="445" y1="68" x2="456" y2="68" stroke="#3a4060" stroke-width="0.5"/><text class="ts" x="460" y="72">B37 bit[0]: BUSY flag</text>
+        <line x1="310" y1="94" x2="310" y2="128" stroke="#6e7898" stroke-width="1.5" fill="none" marker-end="url(#arrow5)"/>
+        <g class="c-blue"><rect x="175" y="128" width="270" height="52" rx="8" stroke-width="0.5"/><text class="th" x="310" y="148" text-anchor="middle" dominant-baseline="central">Write command header</text><text class="ts" x="310" y="165" text-anchor="middle" dominant-baseline="central">Page 09h B128-131: CMD + lengths</text></g>
+        <line x1="445" y1="154" x2="456" y2="154" stroke="#3a4060" stroke-width="0.5"/><text class="ts" x="460" y="158">B128-131: CMD + LPL len</text>
+        <line x1="310" y1="180" x2="310" y2="214" stroke="#6e7898" stroke-width="1.5" fill="none" marker-end="url(#arrow5)"/>
+        <g class="c-blue"><rect x="175" y="214" width="270" height="52" rx="8" stroke-width="0.5"/><text class="th" x="310" y="234" text-anchor="middle" dominant-baseline="central">Write payload (LPL)</text><text class="ts" x="310" y="251" text-anchor="middle" dominant-baseline="central">B132-255: up to 124 bytes</text></g>
+        <line x1="445" y1="240" x2="456" y2="240" stroke="#3a4060" stroke-width="0.5"/><text class="ts" x="460" y="244">EPL: Page 0Ah for &gt;124 B</text>
+        <line x1="310" y1="266" x2="310" y2="300" stroke="#6e7898" stroke-width="1.5" fill="none" marker-end="url(#arrow5)"/>
+        <g class="c-purple"><rect x="175" y="300" width="270" height="52" rx="8" stroke-width="0.5"/><text class="th" x="310" y="320" text-anchor="middle" dominant-baseline="central">Trigger command</text><text class="ts" x="310" y="337" text-anchor="middle" dominant-baseline="central">write 0x01 to Lower B38 (RUN)</text></g>
+        <line x1="445" y1="326" x2="456" y2="326" stroke="#3a4060" stroke-width="0.5"/><text class="ts" x="460" y="330">B38 bit[0]: RUN trigger</text>
+        <line x1="310" y1="352" x2="310" y2="386" stroke="#6e7898" stroke-width="1.5" fill="none" marker-end="url(#arrow5)"/>
+        <g class="c-amber"><rect x="175" y="386" width="270" height="52" rx="8" stroke-width="0.5"/><text class="th" x="310" y="406" text-anchor="middle" dominant-baseline="central">Module processing</text><text class="ts" x="310" y="423" text-anchor="middle" dominant-baseline="central">B37 bit[0] = 1 while busy</text></g>
+        <line x1="445" y1="412" x2="456" y2="412" stroke="#3a4060" stroke-width="0.5"/><text class="ts" x="460" y="416">1ms to seconds per CMD</text>
+        <path d="M 175 438 L 130 438 L 130 386 L 175 386" fill="none" stroke="#505870" stroke-width="1" stroke-dasharray="4 3" marker-end="url(#arrow5)"/>
+        <text class="ts" x="108" y="414" text-anchor="middle">poll</text>
+        <line x1="310" y1="438" x2="310" y2="472" stroke="#6e7898" stroke-width="1.5" fill="none" marker-end="url(#arrow5)"/>
+        <g class="c-gray"><rect x="175" y="472" width="270" height="52" rx="8" stroke-width="0.5"/><text class="th" x="310" y="492" text-anchor="middle" dominant-baseline="central">Check completion status</text><text class="ts" x="310" y="509" text-anchor="middle" dominant-baseline="central">B37[7:6]: 00=OK, 01=err</text></g>
+        <line x1="445" y1="498" x2="456" y2="498" stroke="#3a4060" stroke-width="0.5"/><text class="ts" x="460" y="502">B37[7:6]: 00=OK, 01=err</text>
+        <line x1="310" y1="524" x2="310" y2="558" stroke="#6e7898" stroke-width="1.5" fill="none" marker-end="url(#arrow5)"/>
+        <g class="c-teal"><rect x="175" y="558" width="270" height="52" rx="8" stroke-width="0.5"/><text class="th" x="310" y="578" text-anchor="middle" dominant-baseline="central">Read reply data</text><text class="ts" x="310" y="595" text-anchor="middle" dominant-baseline="central">Page 04h B128-255: reply LPL</text></g>
+        <line x1="445" y1="584" x2="456" y2="584" stroke="#3a4060" stroke-width="0.5"/><text class="ts" x="460" y="588">EPL reply: Page 05h</text>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- ═══════════════════════════════════════════
+     08 — CDB COMMAND CODE REFERENCE
+════════════════════════════════════════════ -->
+<section class="section" id="cdb-codes">
+  <div class="section-label">08</div>
+  <h2 class="section-title">CDB command code reference</h2>
+  <p class="section-desc">Standard CDB command codes defined by CMIS 5.2. Vendor-specific commands use codes in the 0x8000–0xFFFF range. The host writes the command code to Page 09h bytes 128–129 (MSB first).</p>
+  <div class="card">
+    <table class="ref-table">
+      <thead>
+        <tr><th>Command code</th><th>Name</th><th>Description</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>0x0000</td><td>Query</td><td>Read module capabilities — supported CDB commands, max LPL/EPL size, firmware info</td></tr>
+        <tr><td>0x0001</td><td>Get FW info</td><td>Returns currently running and committed firmware version strings</td></tr>
+        <tr><td>0x0100</td><td>Enter FW update mode</td><td>Puts module into firmware download mode; stops normal operation on selected image slot</td></tr>
+        <tr><td>0x0101</td><td>FW download start</td><td>Initiates firmware block transfer; returns target image slot and expected size</td></tr>
+        <tr><td>0x0103</td><td>FW download complete</td><td>Signals end of firmware block transfer; module validates CRC</td></tr>
+        <tr><td>0x0104</td><td>FW run</td><td>Commands module to boot from newly downloaded image (may trigger reset)</td></tr>
+        <tr><td>0x0105</td><td>FW commit</td><td>Marks the running image as the permanent boot image</td></tr>
+        <tr><td>0x0200</td><td>Read from NVM</td><td>Read arbitrary non-volatile memory content via EPL (extended payload)</td></tr>
+        <tr><td>0x0201</td><td>Write to NVM</td><td>Write arbitrary NVM content; used for calibration data, custom config</td></tr>
+        <tr><td>0x0300</td><td>Loopback control</td><td>Enable / disable host-side or media-side electrical or optical loopback per lane</td></tr>
+        <tr><td>0x0400</td><td>Read diag data</td><td>Retrieve extended diagnostic snapshot — eye diagram data, SNR margin, link budget</td></tr>
+        <tr><td>0x8000–0xFFFF</td><td>Vendor specific</td><td>OEM commands — custom calibration, factory test modes, proprietary feature control</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════
+     FOOTER
+════════════════════════════════════════════ -->
+<footer class="footer">
+  <span>CMIS 5.2 — SFF Committee</span>
+  <span>QSFP-DD · OSFP · SFP-DD</span>
+  <span>Reference page generated 2026</span>
+</footer>
+
+</div><!-- /page-wrap -->
+
+<!-- ═══════════════════════════════════════════
+     DATA PATH STEPPER SCRIPT
+════════════════════════════════════════════ -->
+<script>
+const DPST=[
+  {name:'Deactivated',code:'DPState = 0x1',color:'#7e88a8',
+   desc:'The data path is completely inactive — no Tx laser emission, no CDR lock required. This is the starting state after module reset or after the host deliberately deactivates the lane via DPDeinit.',
+   action:'Read Page 01h (B128–191) to discover the supported applications. Choose the AppSel code (1–15) that matches your target speed, media type, and lane count.',
+   regs:['Page 01h B128–191: app table','Lower B26: DPState','Page 10h B143: DPDeinit=0xFF']},
+  {name:'Init',code:'DPState = 0x2',color:'#2a5aa0',
+   desc:'Host has written AppSel and toggled DPDeinit. The module is internally configuring SerDes, loading signal integrity presets from Page 10h, and preparing Tx/Rx circuitry for the selected application.',
+   action:'Write AppSel nibbles to Page 10h B145–152. Assert DPDeinit by writing 0xFF to B143, then de-assert with 0x00. The rising edge is the trigger — module begins Init when it sees DPDeinit go low.',
+   regs:['Page 10h B145–152: AppSel','Page 10h B143: DPDeinit','Page 10h B153–186: SI config']},
+  {name:'TxTurnOn',code:'DPState = 0x4',color:'#8a5a10',
+   desc:'Electrical data path setup is complete. The module is now enabling the Tx laser: applying bias current, allowing the CDR to lock, and ramping optical output power. This can take tens to hundreds of milliseconds.',
+   action:'Continue polling DPState from Lower B26. Do not send payload traffic yet. Optionally read Tx power from Page 11h B128–139 to watch laser turn-on in real time.',
+   regs:['Lower B26: DPState','Lower B8–9: Tx fault flags','Page 11h B128–139: Tx power']},
+  {name:'DataPathActivated',code:'DPState = 0x3',color:'#1a6045',
+   desc:'Fully operational. Tx laser is on and stable, CDR is locked, LOS is cleared, and bidirectional traffic can flow. All per-lane diagnostic values — optical power, BER, SNR, bias current — are now valid.',
+   action:'Send traffic. Monitor alarm flags in Lower B8–31. Configure VDM observables on Page 20h for deeper diagnostics. Verify alarm thresholds from Page 02h match your link budget.',
+   regs:['Page 11h: Rx/Tx power, bias I','Page 20h: VDM observables','Lower B8–31: alarm flags']},
+  {name:'DataPathFault',code:'DPState = 0x5',color:'#903028',
+   desc:'A fault was detected — CDR loss-of-lock, Tx laser failure, or SI parameters out-of-spec. The module has disabled the affected lanes to protect the link and flag the problem.',
+   action:'Read fault cause from Lower B8–31 (latched, sticky flags). Clear flags by writing 1 to the set bits. After fixing the root cause, re-trigger DPDeinit (0xFF → 0x00) to restart initialization.',
+   regs:['Lower B8–31: fault flags','Page 10h B143: DPDeinit','Lower B26: DPState']}
+];
+
+let dpCur=0;
+const dpDotsEl=document.getElementById('dp-dots');
+const dpCardsEl=document.getElementById('dp-cards');
+
+DPST.forEach((s,i)=>{
+  const d=document.createElement('span');
+  d.className='sdot'+(i===0?' on':'');
+  d.id='dpdot'+i;
+  dpDotsEl.appendChild(d);
+
+  const c=document.createElement('div');
+  c.id='dpcard'+i;
+  c.className='stage'+(i===0?' active':'');
+  c.innerHTML=`<div class="stage-card">
+    <div class="stage-header">
+      <span class="state-dot" style="background:${s.color}"></span>
+      <span class="state-name">${s.name}</span>
+      <span class="state-code">${s.code}</span>
+    </div>
+    <p class="stage-desc">${s.desc}</p>
+    <div class="action-box">
+      <div class="action-label">Host action</div>
+      <div class="action-text">${s.action}</div>
+    </div>
+    <div class="reg-pills">${s.regs.map(r=>`<span class="pill">${r}</span>`).join('')}</div>
+  </div>`;
+  dpCardsEl.appendChild(c);
+});
+
+function dpRender(){
+  DPST.forEach((_,i)=>{
+    document.getElementById('dpdot'+i).className='sdot'+(i===dpCur?' on':'');
+    document.getElementById('dpcard'+i).className='stage'+(i===dpCur?' active':'');
+  });
+  document.getElementById('dp-pos').textContent=`${dpCur+1} / ${DPST.length}`;
+  document.getElementById('dp-prev').disabled=dpCur===0;
+  document.getElementById('dp-next').textContent=dpCur===DPST.length-1?'Done':'Next →';
+}
+function dpMv(d){dpCur=Math.max(0,Math.min(DPST.length-1,dpCur+d));dpRender();}
+dpRender();
+</script>
+</body>
+</html>
