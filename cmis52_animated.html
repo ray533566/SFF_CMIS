@@ -9,7 +9,7 @@
 :root {
   --bg:#0d0f14; --bg2:#13161d; --bg3:#1a1e28;
   --border:#252a38; --border2:#2e3448;
-  --text:#e2e6f0; --text2:#8b91a8; --text3:#545c78;
+  --text:#e2e6f0; --text2:#c0c8de; --text3:#8892b0;
   --accent:#4f8ef7; --accent2:#6dd4a8;
   --amber:#f0a832; --coral:#e8624a; --purple:#a87ef5;
   --green:#52c77e; --red:#e05050;
@@ -60,13 +60,13 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:15
 /* ── Module SM ── */
 .msm-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px}
 .msm-state{border:1px solid var(--border2);border-radius:8px;padding:12px;
-  background:var(--bg3);transition:all .4s;opacity:.35}
+  background:var(--bg3);transition:all .4s;opacity:.55}
 .msm-state.lit{opacity:1;border-color:var(--accent);box-shadow:0 0 12px rgba(79,142,247,.15)}
 .msm-state.fault{border-color:var(--coral)!important;box-shadow:0 0 12px rgba(232,98,74,.12)!important}
 .msm-state.ready{border-color:var(--accent2)!important;box-shadow:0 0 16px rgba(109,212,168,.18)!important}
 .msm-dot{width:10px;height:10px;border-radius:50%;margin-bottom:8px}
 .msm-name{font-size:13px;font-weight:500;color:var(--text)}
-.msm-code{font-family:var(--mono);font-size:11px;color:var(--text3);margin-top:3px}
+.msm-code{font-family:var(--mono);font-size:11px;color:#9aa4c0;margin-top:3px}
 .msm-arrow-row{display:flex;align-items:center;gap:0;margin-bottom:20px;overflow:hidden}
 .msm-arrow{flex:1;height:2px;background:var(--border2);transition:background .4s;position:relative}
 .msm-arrow.lit{background:var(--accent)}
@@ -81,7 +81,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:15
 .dp-lane-lbl{font-family:var(--mono);font-size:11px;color:var(--text3);width:56px;flex-shrink:0}
 .dp-cell{flex:1;height:34px;border-radius:5px;border:1px solid var(--border);background:var(--bg3);
   display:flex;align-items:center;justify-content:center;
-  font-family:var(--mono);font-size:10px;color:var(--text3);transition:all .35s}
+  font-family:var(--mono);font-size:10px;color:#8892b0;transition:all .35s}
 .dp-cell.active{color:var(--text);border-color:var(--accent2);background:rgba(109,212,168,.08);box-shadow:0 0 8px rgba(109,212,168,.1)}
 .dp-cell.txon{color:var(--amber);border-color:var(--amber);background:rgba(240,168,50,.07)}
 .dp-cell.init{color:var(--accent);border-color:var(--accent);background:rgba(79,142,247,.07)}
@@ -89,10 +89,10 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:15
 /* ── CDB flow ── */
 .cdb-steps{display:flex;flex-direction:column;gap:6px}
 .cdb-step{display:flex;align-items:flex-start;gap:12px;padding:12px 14px;
-  border:1px solid var(--border);border-radius:8px;background:var(--bg3);transition:all .35s;opacity:.4}
+  border:1px solid var(--border);border-radius:8px;background:var(--bg3);transition:all .35s;opacity:.65}
 .cdb-step.active{opacity:1;border-color:var(--accent2);background:rgba(109,212,168,.05)}
 .cdb-step.busy-step{border-color:var(--amber)!important;background:rgba(240,168,50,.05)!important}
-.cdb-step.done{opacity:.7;border-color:var(--border2);background:var(--bg3)}
+.cdb-step.done{opacity:.75;border-color:var(--border2);background:var(--bg3)}
 .cdb-num{font-family:var(--mono);font-size:11px;color:var(--text3);min-width:20px;margin-top:2px}
 .cdb-step.active .cdb-num{color:var(--accent2)}
 .cdb-name{font-size:13px;font-weight:500;color:var(--text);margin-bottom:2px}
@@ -106,7 +106,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:15
 .reg-watch-title{font-family:var(--mono);font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px}
 .reg-rows{display:flex;flex-wrap:wrap;gap:8px}
 .reg-item{font-family:var(--mono);font-size:11px;display:flex;gap:6px;align-items:center}
-.reg-addr{color:var(--text3)}
+.reg-addr{color:#9aa4c0}
 .reg-val{color:var(--accent2);transition:color .2s}
 .reg-val.flash{color:#fff;text-shadow:0 0 8px var(--accent2)}
 
@@ -272,7 +272,7 @@ function flash(id, val) {
 // MODULE STATE MACHINE
 // ═══════════════════════════════════════════════════════════════
 const MSM_STATES = [
-  { name:'ModuleReset',    code:'0x00', color:'#545c78', cls:'' },
+  { name:'ModuleReset',    code:'0x00', color:'#8892b0', cls:'' },
   { name:'ModuleLowPwr',   code:'0x01', color:'#2a5aa0', cls:'' },
   { name:'ModulePwrUp',    code:'0x02', color:'#8a5a10', cls:'' },
   { name:'ModuleReady',    code:'0x03', color:'#1a6045', cls:'ready' },
