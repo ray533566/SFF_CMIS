@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Host Firmware Download — CDB Protocol Flow</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#0d0f14; --bg2:#13161d; --bg3:#1a1e28;
+  --border:#252a38; --border2:#2e3448;
+  --text:#e2e6f0; --text2:#c0c8de; --text3:#8892b0;
+  --accent:#4f8ef7; --accent2:#6dd4a8; --amber:#f0a832;
+  --coral:#e8624a; --purple:#a87ef5; --green:#52c77e;
+  --mono:'IBM Plex Mono',monospace; --sans:'IBM Plex Sans',sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:15px;line-height:1.7}
+.page-wrap{max-width:1060px;margin:0 auto;padding:0 24px 80px}
+.site-header{border-bottom:1px solid var(--border);padding:44px 0 34px;margin-bottom:28px;position:relative}
+.site-header::before{content:'';position:absolute;top:0;left:-24px;right:-24px;height:3px;
+  background:linear-gradient(90deg,var(--accent2) 0%,var(--accent) 50%,var(--purple) 100%)}
+.header-eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.12em;color:var(--accent2);text-transform:uppercase;margin-bottom:10px}
+.header-title{font-size:clamp(22px,4vw,34px);font-weight:600;letter-spacing:-.02em;color:var(--text);margin-bottom:10px}
+.header-sub{font-size:13.5px;color:var(--text2);max-width:720px;line-height:1.75}
+.header-badges{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
+.badge{font-family:var(--mono);font-size:11px;padding:3px 10px;border-radius:4px;border:1px solid var(--border2);color:var(--text3)}
+.badge.g{border-color:#1a6045;color:var(--accent2)}
+.phase-desc{display:grid;grid-template-columns:1fr 1fr;gap:14px 28px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:18px 20px;margin-bottom:20px}
+.ph-item{display:flex;gap:10px;align-items:flex-start;font-size:13px;color:var(--text2)}
+.ph-num{font-family:var(--mono);font-size:13px;font-weight:600;color:var(--accent2);flex-shrink:0;padding-top:2px}
+.ctrl-bar{display:flex;gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap}
+.scn-label{font-family:var(--mono);font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em}
+.scn-btn{font-family:var(--sans);font-size:13px;padding:6px 14px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--text3);cursor:pointer;transition:all .18s}
+.scn-btn:hover{background:var(--bg2);color:var(--text2)}
+.scn-btn.sa{border-color:var(--accent2);background:#0e2820;color:var(--accent2)}
+.scn-btn.sb{border-color:var(--coral);background:#2a1210;color:var(--coral)}
+.scn-btn.sc{border-color:var(--amber);background:#281c08;color:var(--amber)}
+.scn-btn.sd{border-color:var(--amber);background:#281c08;color:var(--amber)}
+.divr{flex:1}
+.cb{font-family:var(--sans);font-size:13px;padding:6px 14px;border-radius:6px;border:1px solid var(--border2);background:transparent;color:var(--text2);cursor:pointer;transition:all .15s}
+.cb:hover:not(:disabled){background:var(--bg3);color:var(--text)}
+.cb:disabled{opacity:.3;cursor:default}
+.cb.play{border-color:var(--accent);color:var(--accent)}
+.cb.play:hover:not(:disabled){background:#152340}
+.cb.paused{border-color:var(--amber);color:var(--amber)}
+.cb.paused:hover{background:#281c08}
+.step-panel{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:14px 20px;margin-bottom:12px;display:flex;align-items:center;gap:14px;min-height:60px}
+.snum{width:30px;height:30px;border-radius:50%;background:var(--bg3);border:1px solid var(--border2);font-family:var(--mono);font-size:12px;color:var(--accent2);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:color .25s,border-color .25s}
+.stxt{font-size:13.5px;color:var(--text2);flex:1}
+.sctr{font-family:var(--mono);font-size:12px;color:var(--text3);white-space:nowrap}
+.prog-wrap{display:flex;align-items:center;gap:10px;margin-bottom:16px}
+.prog-track{flex:1;height:3px;background:var(--border);border-radius:2px;overflow:hidden}
+.prog-fill{height:100%;background:var(--accent2);border-radius:2px;transition:width .35s ease}
+.fc-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:20px}
+.fn{transition:opacity .3s ease;opacity:.42}
+.fn.done{opacity:.70}
+.fn.active{opacity:1}
+.fa{transition:opacity .3s ease;opacity:.18}
+.fa.done{opacity:.52}
+.fa.active{opacity:1}
+.lspot{pointer-events:none;transition:opacity .28s ease}
+.legend{display:flex;gap:18px;flex-wrap:wrap;padding:14px 20px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;margin-bottom:40px}
+.li{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--text3)}
+.ls{width:14px;height:14px;border-radius:3px;flex-shrink:0}
+.ld{width:14px;height:14px;border-radius:2px;flex-shrink:0;transform:rotate(45deg)}
+.footer{border-top:1px solid var(--border);padding-top:26px;margin-top:44px;font-size:12px;color:var(--text3);font-family:var(--mono);display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
+</style>
+</head>
+<body>
+<div class="page-wrap">
+
+<header class="site-header">
+  <div class="header-eyebrow">CMIS 5.2 · CDB Protocol · Host Interaction</div>
+  <h1 class="header-title">Host Firmware Download Flow</h1>
+  <p class="header-sub">Host-side CDB sequence for module firmware upgrade. Blocks are read from a binary file and written to the module via LPL/EPL. Erase-byte blocks are skipped; CRC validation happens on CMD Complete.</p>
+  <div class="header-badges">
+    <span class="badge g">① Identify</span><span class="badge g">② Start</span>
+    <span class="badge g">③ Read / Write loop</span><span class="badge g">④ Complete</span>
+    <span class="badge">CMD 0041h</span><span class="badge">CMD 0101h</span>
+    <span class="badge">CMD 0103h/0104h</span><span class="badge">CMD 0105h/0106h</span>
+    <span class="badge">CMD 0107h</span>
+  </div>
+</header>
+
+<div class="phase-desc">
+  <div class="ph-item"><span class="ph-num">①</span><span><strong>Identify</strong> — read firmware management capabilities: START_LPL size and erase byte value.</span></div>
+  <div class="ph-item"><span class="ph-num">②</span><span><strong>Start</strong> — host sends CMD Start to enter upgrade mode; module may erase the target area.</span></div>
+  <div class="ph-item"><span class="ph-num">③</span><span><strong>Read file / Write</strong> — host downloads each block via CMD Write (LPL/EPL); erase-byte blocks are skipped. CMD Read verifies each written block.</span></div>
+  <div class="ph-item"><span class="ph-num">④</span><span><strong>Complete</strong> — module validates the full image checksum. Failure returns a bad-CRC error.</span></div>
+</div>
+
+<div class="ctrl-bar">
+  <span class="scn-label">Scenario</span>
+  <button class="scn-btn" id="btn-a" onclick="selectScn('normal')">◆ Normal Update</button>
+  <button class="scn-btn" id="btn-b" onclick="selectScn('startfail')">◆ Start Failed</button>
+  <button class="scn-btn" id="btn-c" onclick="selectScn('writefail')">◆ Write Failed</button>
+  <button class="scn-btn" id="btn-d" onclick="selectScn('crcfail')">◆ CRC Error</button>
+  <div class="divr"></div>
+  <button class="cb" id="btn-prev" onclick="nav(-1)" disabled>← Prev</button>
+  <button class="cb play" id="btn-play" onclick="togglePlay()">▶ Play</button>
+  <button class="cb" id="btn-next" onclick="nav(1)">Next →</button>
+  <button class="cb" onclick="doReset()" title="Reset">↺</button>
+</div>
+
+<div class="step-panel">
+  <div class="snum" id="snum">—</div>
+  <div class="stxt" id="stxt">Select a scenario above, then press Play or step through with Next →</div>
+  <div class="sctr" id="sctr"></div>
+</div>
+<div class="prog-wrap">
+  <div class="prog-track"><div class="prog-fill" id="pfill" style="width:0%"></div></div>
+</div>
+
+<!-- ══════════════════════════════════════ FLOWCHART ══ -->
+<div class="fc-card">
+<svg id="fc" width="100%" viewBox="0 0 980 800" xmlns="http://www.w3.org/2000/svg">
+<defs>
+  <marker id="mh" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+    <path d="M2 1.5L8 5L2 8.5" fill="none" stroke="#6e7898" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  </marker>
+  <filter id="spot-glow" x="-250%" y="-250%" width="600%" height="600%">
+    <feGaussianBlur stdDeviation="5" result="blur"/>
+    <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+  </filter>
+  <filter id="spot-core" x="-150%" y="-150%" width="400%" height="400%">
+    <feGaussianBlur stdDeviation="2" result="blur"/>
+    <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+  </filter>
+</defs>
+
+<!-- ══ SECTION DASHED BOXES ══ -->
+<rect x="58" y="70"  width="364" height="70" rx="8" fill="none" stroke="#1a6045" stroke-width="1" stroke-dasharray="5 3" opacity=".7"/>
+<rect x="58" y="228" width="364" height="64" rx="8" fill="none" stroke="#1a4080" stroke-width="1" stroke-dasharray="5 3" opacity=".7"/>
+<rect x="58" y="346" width="780" height="170" rx="8" fill="none" stroke="#1a6045" stroke-width="1" stroke-dasharray="5 3" opacity=".55"/>
+<rect x="58" y="690" width="364" height="60" rx="8" fill="none" stroke="#1a4080" stroke-width="1" stroke-dasharray="5 3" opacity=".7"/>
+
+<!-- Section labels -->
+<text x="76" y="66"  font-family="IBM Plex Sans" font-size="12" font-weight="600" fill="#6dd4a8">① Identify</text>
+<text x="76" y="224" font-family="IBM Plex Sans" font-size="12" font-weight="600" fill="#4f8ef7">② Start</text>
+<text x="76" y="342" font-family="IBM Plex Sans" font-size="12" font-weight="600" fill="#6dd4a8">③ Read file / Write loop</text>
+<text x="76" y="686" font-family="IBM Plex Sans" font-size="12" font-weight="600" fill="#4f8ef7">④ Complete</text>
+
+<!-- Optional / Required legend (top right) -->
+<rect x="830" y="62" width="108" height="26" rx="6" fill="#1a1e28" stroke="#2e3448" stroke-width="1"/>
+<text x="884" y="75" text-anchor="middle" font-family="IBM Plex Sans" font-size="11" fill="#8892b0" dominant-baseline="central">Optional</text>
+<rect x="830" y="96" width="108" height="26" rx="6" fill="#152340" stroke="#2a5aa0" stroke-width="1.2"/>
+<text x="884" y="109" text-anchor="middle" font-family="IBM Plex Sans" font-size="11" fill="#c0c8de" dominant-baseline="central">Required</text>
+
+<!-- ════════════════════════
+     START OVAL
+════════════════════════ -->
+<g id="ns" class="fn">
+  <rect x="130" y="10" width="220" height="40" rx="20" fill="#0e2418" stroke="#286838" stroke-width="1.8"/>
+  <text x="240" y="30" text-anchor="middle" font-family="IBM Plex Sans" font-size="13" font-weight="600" fill="#70d898" dominant-baseline="central">Start Firmware Update</text>
+</g>
+
+<path id="a_s_id" class="fa" d="M240 50 L240 72" stroke="#6e7898" stroke-width="1.5" fill="none" marker-end="url(#mh)"/>
+
+<!-- ════════════════════════
+     ① IDENTIFY
+════════════════════════ -->
+<g id="nid" class="fn">
+  <rect x="60" y="72" width="360" height="68" rx="8" fill="#0e2820" stroke="#1a6045" stroke-width="1.2"/>
+  <text x="240" y="94" text-anchor="middle" font-family="IBM Plex Sans" font-size="12" font-weight="500" fill="#e2e6f0" dominant-baseline="central">Read Capabilities (CMD 0041h)</text>
+  <text x="240" y="114" text-anchor="middle" font-family="IBM Plex Sans" font-size="11" fill="#c0c8de" dominant-baseline="central">Read size of START_LPL, erase byte</text>
+</g>
+
+<path id="a_id_rwf" class="fa" d="M240 140 L240 158" stroke="#6e7898" stroke-width="1.5" fill="none" marker-end="url(#mh)"/>
+
+<g id="nrwf" class="fn">
+  <rect x="60" y="158" width="360" height="52" rx="8" fill="#152340" stroke="#2a5aa0" stroke-width="1.2"/>
+  <text x="240" y="178" text-anchor="middle" font-family="IBM Plex Sans" font-size="12" font-weight="500" fill="#e2e6f0" dominant-baseline="central">Read WriteFile (Binary/Hex)</text>
+  <text x="240" y="196" text-anchor="middle" font-family="IBM Plex Sans" font-size="11" fill="#c0c8de" dominant-baseline="central">Size of Start_LPL bytes</text>
+</g>
+
+<path id="a_rwf_cs" class="fa" d="M240 210 L240 230" stroke="#6e7898" stroke-width="1.5" fill="none" marker-end="url(#mh)"/>
+
+<!-- ════════════════════════
+     ② CMD START
+════════════════════════ -->
+<g id="ncs" class="fn">
+  <rect x="60" y="230" width="360" height="60" rx="8" fill="#152340" stroke="#2a5aa0" stroke-width="1.2"/>
+  <text x="240" y="252" text-anchor="middle" font-family="IBM Plex Sans" font-size="12" font-weight="500" fill="#e2e6f0" dominant-baseline="central">Send CMD Start (CMD 0101h)</text>
+  <text x="240" y="271" text-anchor="middle" font-family="IBM Plex Sans" font-size="11" fill="#c0c8de" dominant-baseline="central">Start_LPL bytes</text>
+</g>
+
+<!-- cs → sf (CDB != Success) -->
+<path id="a_cs_sf" class="fa" d="M420 260 L716 260" stroke="#6e7898" stroke-width="1.5" fill="none" marker-end="url(#mh)" stroke-dasharray="4 3"/>
+<text x="568" y="252" text-anchor="middle" font-family="IBM Plex Sans" font-size="10" fill="#e8624a">CDB != Success</text>
+
+<!-- Start Failed node -->
+<g id="nsf" class="fn">
+  <rect x="716" y="230" width="188" height="60" rx="8" fill="#2a1210" stroke="#903028" stroke-width="1.5"/>
+  <text x="810" y="250" text-anchor="middle" font-family="IBM Plex Sans" font-size="11" font-weight="600" fill="#f09080" dominant-baseline="central">Start Failed.</text>
+  <text x="810" y="266" text-anchor="middle" font-family="IBM Plex Sans" font-size="10" fill="#c07070" dominant-baseline="central">Module not in firmware</text>
+  <text x="810" y="281" text-anchor="middle" font-family="IBM Plex Sans" font-size="10" fill="#c07070" dominant-baseline="central">upgrade mode.</text>
+</g>
+
+<!-- cs → rb (CDB == Success, set addr=0) -->
+<path id="a_cs_rb" class="fa" d="M240 290 L240 350" stroke="#6e7898" stroke-width="1.5" fill="none" marker-end="url(#mh)"/>
+<text x="258" y="314" font-family="IBM Plex Sans" font-size="10" fill="#6dd4a8">CDB == Success</text>
+<text x="258" y="328" font-family="IBM Plex Mono" font-size="10" fill="#8892b0">set addr = 0</text>
+
+<!-- ════════════════════════
+     ③ READ FILE (left) / CMD READ (right) — upper row
+════════════════════════ -->
+
+<!-- nrb: Read File -->
+<g id="nrb" class="fn">
+  <rect x="60" y="350" width="308" height="56" rx="8" fill="#0e2820" stroke="#1a6045" stroke-width="1.2"/>
+  <text x="214" y="370" text-anchor="middle" font-family="IBM Plex Sans" font-size="12" font-weight="500" fill="#e2e6f0" dominant-baseline="central">Read File (Binary/Hex)</text>
+  <text x="214" y="389" text-anchor="middle" font-family="IBM Plex Mono" font-size="11" fill="#c0c8de" dominant-baseline="central">"block size"</text>
+</g>
+
+<!-- nrpl: Send CMD Read (optional) — upper right -->
+<g id="nrpl" class="fn">
+  <rect x="556" y="350" width="268" height="56" rx="8" fill="#1a1e28" stroke="#404870" stroke-width="1.2"/>
+  <text x="690" y="370" text-anchor="middle" font-family="IBM Plex Sans" font-size="11" font-weight="500" fill="#c0c8de" dominant-baseline="central">Send CMD Read LPL/EPL using addr</text>
+  <text x="690" y="389" text-anchor="middle" font-family="IBM Plex Mono" font-size="11" fill="#8892b0" dominant-baseline="central">(CMD 0105h / 0106h)</text>
+</g>
+
+<!-- nrpl "CDB==Success" → loop back to nrb (horizontal arrow left) -->
+<path id="a_rpl_rb" class="fa" d="M556 378 L368 378" stroke="#6e7898" stroke-width="1.5" fill="none" marker-end="url(#mh)" stroke-dasharray="5 3"/>
+<text x="462" y="370" text-anchor="middle" font-family="IBM Plex Sans" font-size="10" fill="#6dd4a8">CDB==Success · addr += block size</text>
+
+<!-- nrpl "CDB==Fail" → right → down → nce top -->
+<path id="a_rpl_ce" class="fa" d="M824 378 L912 378 L912 446 L834 446" stroke="#6e7898" stroke-width="1.5" fill="none" marker-end="url(#mh)"/>
+<text x="876" y="370" text-anchor="middle" font-family="IBM Plex Sans" font-size="10" fill="#e8624a">CDB == Fail</text>
+
+<!-- rb → eof (down) -->
+<path id="a_rb_eof" class="fa" d="M214 406 L214 422" stroke="#6e7898" stroke-width="1.5" fill="none" marker-end="url(#mh)"/>
+
+<!-- ════════════════════════
+     ③ EOF / ERASE diamonds — lower row + CMD WRITE right
+════════════════════════ -->
+
+<!-- EOF diamond -->
+<g id="neof" class="fn">
+  <polygon points="214,422 302,464 214,506 126,464" fill="#281c08" stroke="#8a5a10" stroke-width="1.2"/>
+  <text x="214" y="464" text-anchor="middle" font-family="IBM Plex Sans" font-size="13" font-weight="600" fill="#e2e6f0" dominant-baseline="central">EOF</text>
+</g>
+<text x="108" y="460" text-anchor="middle" font-family="IBM Plex Sans" font-size="11" fill="#6dd4a8">Yes</text>
+<text x="310" y="460" font-family="IBM Plex Sans" font-size="11" fill="#e2e6f0">No</text>
+
+<!-- EOF Yes → left corridor → ncmp -->
+<path id="a_eof_yes" class="fa" d="M126 464 L46 464 L46 720 L60 720" stroke="#6e7898" stroke-width="1.5" fill="none" marker-end="url(#mh)" stroke-dasharray="5 3"/>
+<text x="28" y="596" text-anchor="middle" font-family="IBM Plex Sans" font-size="10" fill="#6dd4a8" transform="rotate(-90 28 596)">EOF → Complete</text>
+
+<!-- EOF No → era left -->
+<path id="a_eof_no" class="fa" d="M302 464 L352 464" stroke="#6e7898" stroke-width="1.5" fill="none" marker-end="url(#mh)"/>
+
+<!-- ERASE BYTE diamond -->
+<g id="nera" class="fn">
+  <polygon points="440,422 528,464 440,506 352,464" fill="#281c08" stroke="#8a5a10" stroke-width="1.2"/>
+  <text x="440" y="454" text-anchor="middle" font-family="IBM Plex Sans" font-size="11" font-weight="500" fill="#e2e6f0" dominant-baseline="central">Block Data ==</text>
+  <text x="440" y="472" text-anchor="middle" font-family="IBM Plex Sans" font-size="11" font-weight="500" fill="#e2e6f0" dominant-baseline="central">Erase Byte?</text>
+</g>
+<text x="348" y="460" text-anchor="end" font-family="IBM Plex Sans" font-size="11" fill="#6dd4a8">Yes</text>
+<text x="534" y="460" font-family="IBM Plex Sans" font-size="11" fill="#e2e6f0">No</text>
+
+<!-- ERA Yes → up-left loop back to nrb right -->
+<path id="a_era_yes" class="fa" d="M440 422 L440 334 L372 334 L372 378 L368 378" stroke="#6e7898" stroke-width="1.5" fill="none" marker-end="url(#mh)" stroke-dasharray="5 3"/>
+<text x="488" y="328" font-family="IBM Plex Sans" font-size="10" fill="#6dd4a8">addr += block size</text>
+
+<!-- ERA No → nwrt left -->
+<path id="a_era_no" class="fa" d="M528 464 L556 464" stroke="#6e7898" stroke-width="1.5" fill="none" marker-end="url(#mh)"/>
+
+<!-- CMD WRITE node (right column, same y as diamonds) -->
+<g id="nwrt" class="fn">
+  <rect x="556" y="434" width="268" height="60" rx="8" fill="#1c1535" stroke="#5038a0" stroke-width="1.2"/>
+  <text x="690" y="454" text-anchor="middle" font-family="IBM Plex Sans" font-size="11" font-weight="500" fill="#e2e6f0" dominant-baseline="central">Send CMD Write LPL/EPL using addr</text>
+  <text x="690" y="472" text-anchor="middle" font-family="IBM Plex Mono" font-size="11" fill="#c0c8de" dominant-baseline="central">(CMD 0103h / 0104h)</text>
+</g>
+<text x="690" y="430" text-anchor="middle" font-family="IBM Plex Sans" font-size="11" font-weight="600" fill="#a87ef5">③ Write</text>
+
+<!-- nwrt CDB==Success → UP to nrpl -->
+<path id="a_wrt_rpl" class="fa" d="M690 434 L690 406" stroke="#6e7898" stroke-width="1.5" fill="none" marker-end="url(#mh)"/>
+<text x="710" y="423" font-family="IBM Plex Sans" font-size="10" fill="#6dd4a8">CDB == Success</text>
+
+<!-- nwrt CDB==Fail → right → nce -->
+<path id="a_wrt_ce" class="fa" d="M824 464 L834 464" stroke="#6e7898" stroke-width="1.5" fill="none" marker-end="url(#mh)"/>
+<text x="829" y="457" text-anchor="middle" font-family="IBM Plex Sans" font-size="10" fill="#e8624a">Fail</text>
+
+<!-- ════════════════════════
+     ERROR PATH (far right)
+════════════════════════ -->
+
+<!-- nce: Send CMD Complete (error cleanup) -->
+<g id="nce" class="fn">
+  <rect x="834" y="446" width="138" height="52" rx="8" fill="#2a1210" stroke="#903028" stroke-width="1.2"/>
+  <text x="903" y="465" text-anchor="middle" font-family="IBM Plex Sans" font-size="11" font-weight="500" fill="#f09080" dominant-baseline="central">Send CMD Complete</text>
+  <text x="903" y="482" text-anchor="middle" font-family="IBM Plex Mono" font-size="11" fill="#c07070" dominant-baseline="central">(CMD 0107h)</text>
+</g>
+<text x="903" y="443" text-anchor="middle" font-family="IBM Plex Sans" font-size="9" fill="#c07070">CDB==Success or Fail</text>
+
+<path id="a_ce_fe" class="fa" d="M903 498 L903 514" stroke="#6e7898" stroke-width="1.5" fill="none" marker-end="url(#mh)"/>
+
+<!-- nfe: Update Failed (error) -->
+<g id="nfe" class="fn">
+  <rect x="834" y="514" width="138" height="44" rx="8" fill="#2a1210" stroke="#903028" stroke-width="1.5"/>
+  <text x="903" y="534" text-anchor="middle" font-family="IBM Plex Sans" font-size="11" font-weight="600" fill="#f09080" dominant-baseline="central">Update Failed.</text>
+  <text x="903" y="549" text-anchor="middle" font-family="IBM Plex Sans" font-size="10" fill="#c07070" dominant-baseline="central">Cleanup</text>
+</g>
+
+<!-- ════════════════════════
+     ④ CMD COMPLETE (MAIN)
+════════════════════════ -->
+<g id="ncmp" class="fn">
+  <rect x="60" y="692" width="360" height="56" rx="8" fill="#152340" stroke="#2a5aa0" stroke-width="1.2"/>
+  <text x="240" y="712" text-anchor="middle" font-family="IBM Plex Sans" font-size="12" font-weight="500" fill="#e2e6f0" dominant-baseline="central">Send CMD Complete (CMD 0107h)</text>
+  <text x="240" y="731" text-anchor="middle" font-family="IBM Plex Sans" font-size="11" fill="#c0c8de" dominant-baseline="central">Module validates full image CRC</text>
+</g>
+
+<!-- ncmp → nfail (CDB != Success, Bad CRC) -->
+<path id="a_cmp_fail" class="fa" d="M420 720 L456 720" stroke="#6e7898" stroke-width="1.5" fill="none" marker-end="url(#mh)" stroke-dasharray="4 3"/>
+<text x="438" y="712" text-anchor="middle" font-family="IBM Plex Sans" font-size="9" fill="#e8624a">CDB != Success</text>
+<text x="438" y="723" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="#a05040">(Bad full Image CRC)</text>
+
+<!-- nfail: Update Failed (main) -->
+<g id="nfail" class="fn">
+  <rect x="456" y="700" width="222" height="44" rx="8" fill="#2a1210" stroke="#903028" stroke-width="1.5"/>
+  <text x="567" y="720" text-anchor="middle" font-family="IBM Plex Sans" font-size="12" font-weight="600" fill="#f09080" dominant-baseline="central">Update Failed.</text>
+  <text x="567" y="735" text-anchor="middle" font-family="IBM Plex Sans" font-size="11" fill="#c07070" dominant-baseline="central">Cleanup</text>
+</g>
+
+<!-- ncmp → nsuc (CDB == Success) -->
+<path id="a_cmp_suc" class="fa" d="M240 748 L240 760" stroke="#6e7898" stroke-width="1.5" fill="none" marker-end="url(#mh)"/>
+<text x="258" y="757" font-family="IBM Plex Sans" font-size="10" fill="#6dd4a8">CDB == Success</text>
+
+<!-- ════════════════════════
+     UPDATE SUCCESS
+════════════════════════ -->
+<g id="nsuc" class="fn">
+  <rect x="130" y="760" width="220" height="40" rx="20" fill="#0e2418" stroke="#286838" stroke-width="2"/>
+  <text x="240" y="780" text-anchor="middle" font-family="IBM Plex Sans" font-size="13" font-weight="600" fill="#70d898" dominant-baseline="central">Update Success</text>
+</g>
+
+</svg>
+</div>
+
+<!-- ══ LEGEND ══ -->
+<div class="legend">
+  <div class="li"><div class="ls" style="background:#0e2820;border:1px solid #1a6045;"></div>① Identify / ③ Read file</div>
+  <div class="li"><div class="ls" style="background:#152340;border:1px solid #2a5aa0;"></div>② Start / ④ Complete</div>
+  <div class="li"><div class="ls" style="background:#1c1535;border:1px solid #5038a0;"></div>③ Write block</div>
+  <div class="li"><div class="ls" style="background:#1a1e28;border:1px solid #404870;"></div>Optional (CMD Read)</div>
+  <div class="li"><div class="ld" style="background:#281c08;border:1px solid #8a5a10;"></div>Decision</div>
+  <div class="li"><div class="ls" style="background:#2a1210;border:1.5px solid #903028;"></div>Error / Failure</div>
+  <div class="li"><div class="ls" style="background:#0e2418;border:2px solid #286838;border-radius:8px;"></div>Success / Start</div>
+  <div class="li"><div style="width:24px;height:2px;background:#6e7898;border-top:1px dashed #6e7898;"></div>Loop / Conditional path</div>
+</div>
+
+<footer class="footer">
+  <span>CMIS 5.2 · CDB Host Firmware Download</span>
+  <span>CMD 0041h → 0101h → 0103h/0104h → 0105h/0106h → 0107h</span>
+  <span>2026</span>
+</footer>
+</div>
+
+<script>
+/* ═══════════ STEP DATA ═══════════ */
+const S = {
+  normal: [
+    { n:['ns'],   a:[],             lbl:'Start Firmware Update — host initiates the CDB download sequence' },
+    { n:['nid'],  a:['a_s_id'],     lbl:'① Identify: Read Capabilities (CMD 0041h) — discover START_LPL size and erase byte value' },
+    { n:['nrwf'], a:['a_id_rwf'],   lbl:'Read firmware binary file from host; record total size (Start_LPL bytes)' },
+    { n:['ncs'],  a:['a_rwf_cs'],   lbl:'② Start: Send CMD Start (CMD 0101h) with Start_LPL payload — enter upgrade mode' },
+    { n:['nrb'],  a:['a_cs_rb'],    lbl:'CDB == Success, set addr = 0 — ③ Read first block ("block size" bytes)' },
+    { n:['neof'], a:['a_rb_eof'],   lbl:'EOF? No — data remains; check if block equals the erase byte pattern' },
+    { n:['nera'], a:['a_eof_no'],   lbl:'Block Data == Erase Byte? No — real data; must write this block to module' },
+    { n:['nwrt'], a:['a_era_no'],   lbl:'③ Write: Send CMD Write LPL/EPL using addr (CMD 0103h/0104h) — transfer block' },
+    { n:['nrpl'], a:['a_wrt_rpl'],  lbl:'CDB == Success → Send CMD Read LPL/EPL (CMD 0105h/0106h) — verify written block' },
+    { n:['nrb'],  a:['a_rpl_rb'],   lbl:'CDB == Success — addr += block size; loop back to read next block' },
+    { n:['neof'], a:['a_rb_eof'],   lbl:'EOF? No — check second block' },
+    { n:['nera'], a:['a_eof_no'],   lbl:'Block Data == Erase Byte? Yes — blank block, no write needed' },
+    { n:['nrb'],  a:['a_era_yes'],  lbl:'Erase byte — skip CMD Write; addr += block size; loop back to Read File' },
+    { n:['neof'], a:['a_rb_eof'],   lbl:'EOF? Yes — all blocks transferred, proceed to Complete' },
+    { n:['ncmp'], a:['a_eof_yes'],  lbl:'④ Complete: Send CMD Complete (CMD 0107h) — module validates full image CRC' },
+    { n:['nsuc'], a:['a_cmp_suc'],  lbl:'✓ CDB == Success — Update Success! Firmware upgrade complete' },
+  ],
+  startfail: [
+    { n:['ns'],   a:[],             lbl:'Start Firmware Update' },
+    { n:['nid'],  a:['a_s_id'],     lbl:'① Identify: Read Capabilities (CMD 0041h)' },
+    { n:['nrwf'], a:['a_id_rwf'],   lbl:'Read firmware file from host file system' },
+    { n:['ncs'],  a:['a_rwf_cs'],   lbl:'② Start: Send CMD Start (CMD 0101h) — attempt to enter upgrade mode' },
+    { n:['nsf'],  a:['a_cs_sf'],    lbl:'✗ CDB != Success — Start Failed. Module is not in firmware upgrade mode.' },
+  ],
+  writefail: [
+    { n:['ns'],   a:[],             lbl:'Start Firmware Update' },
+    { n:['nid'],  a:['a_s_id'],     lbl:'① Identify: Read Capabilities (CMD 0041h)' },
+    { n:['nrwf'], a:['a_id_rwf'],   lbl:'Read firmware file from host file system' },
+    { n:['ncs'],  a:['a_rwf_cs'],   lbl:'② Start: Send CMD Start (CMD 0101h) — CDB == Success, addr = 0' },
+    { n:['nrb'],  a:['a_cs_rb'],    lbl:'③ Read first block from firmware file' },
+    { n:['neof'], a:['a_rb_eof'],   lbl:'EOF? No — check block content' },
+    { n:['nera'], a:['a_eof_no'],   lbl:'Block Data == Erase Byte? No — must write this block' },
+    { n:['nwrt'], a:['a_era_no'],   lbl:'③ Write: Send CMD Write LPL/EPL (CMD 0103h/0104h)' },
+    { n:['nce'],  a:['a_wrt_ce'],   lbl:'✗ CDB == Fail — Write error; trigger error cleanup via CMD Complete' },
+    { n:['nfe'],  a:['a_ce_fe'],    lbl:'✗ Update Failed. Cleanup — firmware upgrade aborted' },
+  ],
+  crcfail: [
+    { n:['ns'],   a:[],             lbl:'Start Firmware Update' },
+    { n:['nid'],  a:['a_s_id'],     lbl:'① Identify: Read Capabilities (CMD 0041h)' },
+    { n:['nrwf'], a:['a_id_rwf'],   lbl:'Read firmware file from host file system' },
+    { n:['ncs'],  a:['a_rwf_cs'],   lbl:'② Start: Send CMD Start — CDB == Success, addr = 0' },
+    { n:['nrb'],  a:['a_cs_rb'],    lbl:'③ Read file — block by block loop begins' },
+    { n:['neof'], a:['a_rb_eof'],   lbl:'EOF? No' },
+    { n:['nera'], a:['a_eof_no'],   lbl:'Block Data == Erase Byte? No → write block' },
+    { n:['nwrt'], a:['a_era_no'],   lbl:'③ Write: Send CMD Write LPL/EPL' },
+    { n:['nrpl'], a:['a_wrt_rpl'],  lbl:'CDB == Success → CMD Read to verify' },
+    { n:['nrb'],  a:['a_rpl_rb'],   lbl:'CDB == Success — addr += block size; loop' },
+    { n:['neof'], a:['a_rb_eof'],   lbl:'EOF? Yes — all blocks written' },
+    { n:['ncmp'], a:['a_eof_yes'],  lbl:'④ Complete: Send CMD Complete (CMD 0107h) — module checks CRC' },
+    { n:['nfail'],a:['a_cmp_fail'], lbl:'✗ CDB != Success (Bad full Image CRC) — Update Failed. Cleanup.' },
+  ]
+};
+
+const ALL_N=['ns','nid','nrwf','ncs','nsf','nrb','nrpl','neof','nera','nwrt','nce','nfe','ncmp','nfail','nsuc'];
+const ALL_A=['a_s_id','a_id_rwf','a_rwf_cs','a_cs_sf','a_cs_rb',
+             'a_rb_eof','a_eof_no','a_eof_yes','a_era_no','a_era_yes',
+             'a_wrt_rpl','a_wrt_ce','a_rpl_rb','a_rpl_ce',
+             'a_ce_fe','a_cmp_suc','a_cmp_fail'];
+
+const COLORS={ normal:'#6dd4a8', startfail:'#e8624a', writefail:'#f0a832', crcfail:'#f0a832' };
+let scn=null, cur=-1, playing=false, timer=null;
+
+const el=id=>document.getElementById(id);
+
+function clearAll(){
+  ALL_N.forEach(id=>{const e=el(id);if(e)e.className='fn';});
+  ALL_A.forEach(id=>{const e=el(id);if(e)e.className='fa';});
+}
+
+/* ── Light spot ── */
+function fireSpot(arrowIds){
+  const svg=el('fc'), NS='http://www.w3.org/2000/svg';
+  const haloColor=COLORS[scn]||'#6dd4a8';
+  svg.querySelectorAll('.lspot').forEach(e=>e.remove());
+  if(!arrowIds||!arrowIds.length) return;
+  arrowIds.forEach(aid=>{
+    const arrow=el(aid); if(!arrow) return;
+    const d=arrow.getAttribute('d'); if(!d) return;
+    const isLong=['a_eof_yes','a_era_yes','a_rpl_rb'].includes(aid);
+    const dur=isLong?'1.1s':'0.65s', fadeDl=isLong?1000:580;
+    [[9,haloColor,.55,'url(#spot-glow)'],[4,'#ffffff',1.0,'url(#spot-core)'],[2,'#ffffff',.7,null]].forEach(([r,fill,op,filt],ti)=>{
+      const c=document.createElementNS(NS,'circle');
+      c.setAttribute('r',r); c.setAttribute('fill',fill);
+      c.setAttribute('opacity',op); c.setAttribute('class','lspot');
+      if(filt) c.setAttribute('filter',filt);
+      const am=document.createElementNS(NS,'animateMotion');
+      am.setAttribute('path',d); am.setAttribute('dur',dur); am.setAttribute('fill','freeze');
+      if(ti===2){am.setAttribute('keyPoints','0;0.82');am.setAttribute('keyTimes','0;1');}
+      c.appendChild(am); svg.appendChild(c);
+      requestAnimationFrame(()=>{
+        am.beginElement();
+        setTimeout(()=>{ c.style.opacity='0'; setTimeout(()=>c.remove(),320); },fadeDl);
+      });
+    });
+  });
+}
+
+/* ── Render ── */
+function render(fwd){
+  if(!scn) return;
+  const steps=S[scn]; clearAll();
+  for(let i=0;i<=cur;i++){
+    const cls=(i===cur)?'fn active':'fn done', acls=(i===cur)?'fa active':'fa done';
+    steps[i].n.forEach(id=>{const e=el(id);if(e)e.className=cls;});
+    steps[i].a.forEach(id=>{const e=el(id);if(e)e.className=acls;});
+  }
+  const total=steps.length, isEnd=cur===total-1, pct=cur<0?0:((cur+1)/total*100);
+  const col=COLORS[scn]||'#6dd4a8';
+  el('pfill').style.width=pct+'%'; el('pfill').style.background=col;
+  if(cur<0){
+    el('snum').textContent='—'; el('snum').style.color=col;
+    const msgs={normal:'Normal Update — happy-path block transfer with erase-byte skip loop.',
+                startfail:'Start Failed — CMD Start rejected; module not in upgrade mode.',
+                writefail:'Write Failed — CMD Write returns CDB Fail; error cleanup triggered.',
+                crcfail:'CRC Error — all blocks written but CMD Complete fails on bad image CRC.'};
+    el('stxt').textContent=msgs[scn]; el('sctr').textContent='0 / '+total;
+  } else {
+    el('snum').textContent=cur+1;
+    el('snum').style.color=isEnd?(scn==='normal'?'var(--green)':'var(--coral)'):col;
+    el('stxt').textContent=steps[cur].lbl;
+    el('sctr').textContent=(cur+1)+' / '+total;
+  }
+  el('btn-prev').disabled=cur<=-1;
+  el('btn-next').disabled=isEnd;
+  el('btn-next').textContent=isEnd?'Done':'Next →';
+  if(fwd&&cur>=0&&steps[cur].a.length>0) fireSpot(steps[cur].a);
+}
+
+function selectScn(s){
+  stopPlay(); scn=s; cur=-1;
+  el('btn-a').className='scn-btn'+(s==='normal'   ?' sa':'');
+  el('btn-b').className='scn-btn'+(s==='startfail'?' sb':'');
+  el('btn-c').className='scn-btn'+(s==='writefail'?' sc':'');
+  el('btn-d').className='scn-btn'+(s==='crcfail'  ?' sd':'');
+  el('fc').querySelectorAll('.lspot').forEach(e=>e.remove());
+  render(false);
+}
+function nav(d){
+  if(!scn) return;
+  cur=Math.max(-1,Math.min(S[scn].length-1,cur+d));
+  render(d>0);
+}
+function togglePlay(){
+  if(!scn) selectScn('normal');
+  playing=!playing;
+  const btn=el('btn-play');
+  if(playing){ btn.className='cb paused'; btn.textContent='⏸ Pause'; autoStep(); }
+  else stopPlay();
+}
+function autoStep(){
+  if(!playing) return;
+  const max=S[scn].length-1;
+  if(cur<max){ cur++; render(true); timer=setTimeout(autoStep,1600); }
+  else stopPlay();
+}
+function stopPlay(){
+  playing=false;
+  if(timer){clearTimeout(timer);timer=null;}
+  const btn=el('btn-play');
+  btn.className='cb play'; btn.textContent='▶ Play';
+}
+function doReset(){
+  stopPlay(); cur=-1;
+  el('fc').querySelectorAll('.lspot').forEach(e=>e.remove());
+  clearAll();
+  if(scn) render(false);
+  else{
+    el('snum').textContent='—';
+    el('stxt').textContent='Select a scenario above, then press Play or step through with Next →';
+    el('sctr').textContent=''; el('pfill').style.width='0%';
+  }
+  el('btn-prev').disabled=true; el('btn-next').disabled=false; el('btn-next').textContent='Next →';
+}
+clearAll();
+</script>
+</body>
+</html>
