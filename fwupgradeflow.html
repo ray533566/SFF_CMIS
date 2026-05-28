@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MCU Firmware Upgrade Flow — STM32H563 OSFP-1.6T</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:      #0d0f14;
+  --bg2:     #13161d;
+  --bg3:     #1a1e28;
+  --border:  #252a38;
+  --border2: #2e3448;
+  --text:    #e2e6f0;
+  --text2:   #c0c8de;
+  --text3:   #8892b0;
+  --accent:  #4f8ef7;
+  --accent2: #6dd4a8;
+  --amber:   #f0a832;
+  --coral:   #e8624a;
+  --purple:  #a87ef5;
+  --green:   #52c77e;
+  --mono: 'IBM Plex Mono', monospace;
+  --sans: 'IBM Plex Sans', sans-serif;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 15px;
+  line-height: 1.7;
+}
+
+.page-wrap { max-width: 1060px; margin: 0 auto; padding: 0 24px 80px; }
+
+/* ── Header ── */
+.site-header {
+  border-bottom: 1px solid var(--border);
+  padding: 48px 0 38px;
+  margin-bottom: 36px;
+  position: relative;
+}
+.site-header::before {
+  content: '';
+  position: absolute;
+  top: 0; left: -24px; right: -24px; height: 3px;
+  background: linear-gradient(90deg, var(--accent) 0%, var(--purple) 50%, var(--accent2) 100%);
+}
+.header-eyebrow {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: .12em;
+  color: var(--accent);
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+.header-title {
+  font-size: clamp(24px, 4vw, 36px);
+  font-weight: 600;
+  letter-spacing: -.02em;
+  color: var(--text);
+  margin-bottom: 10px;
+}
+.header-sub {
+  font-size: 14px;
+  color: var(--text2);
+  max-width: 620px;
+  line-height: 1.65;
+}
+.header-badges {
+  display: flex;
+  gap: 8px;
+  margin-top: 18px;
+  flex-wrap: wrap;
+}
+.badge {
+  font-family: var(--mono);
+  font-size: 11px;
+  padding: 3px 10px;
+  border-radius: 4px;
+  border: 1px solid var(--border2);
+  color: var(--text3);
+}
+
+/* ── Controls ── */
+.ctrl-bar {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+}
+.scn-label {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text3);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  margin-right: 4px;
+}
+.scn-btn {
+  font-family: var(--sans);
+  font-size: 13px;
+  padding: 6px 14px;
+  border-radius: 6px;
+  border: 1px solid var(--border2);
+  background: var(--bg3);
+  color: var(--text3);
+  cursor: pointer;
+  transition: all .18s;
+}
+.scn-btn:hover { background: var(--bg2); color: var(--text2); }
+.scn-btn.sh { border-color: var(--purple); background: #1c1535; color: var(--purple); }
+.scn-btn.sf { border-color: var(--coral);  background: #2a1210; color: var(--coral);  }
+
+.divr { flex: 1; }
+
+.cb {
+  font-family: var(--sans);
+  font-size: 13px;
+  padding: 6px 14px;
+  border-radius: 6px;
+  border: 1px solid var(--border2);
+  background: transparent;
+  color: var(--text2);
+  cursor: pointer;
+  transition: all .15s;
+}
+.cb:hover:not(:disabled) { background: var(--bg3); color: var(--text); }
+.cb:disabled { opacity: .3; cursor: default; }
+.cb.play { border-color: var(--accent); color: var(--accent); }
+.cb.play:hover:not(:disabled) { background: #152340; }
+.cb.paused { border-color: var(--amber); color: var(--amber); }
+.cb.paused:hover { background: #281c08; }
+
+/* ── Step panel ── */
+.step-panel {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px 20px;
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 62px;
+}
+.snum {
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  background: var(--bg3);
+  border: 1px solid var(--border2);
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--accent);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  transition: border-color .25s, color .25s;
+}
+.stxt { font-size: 13.5px; color: var(--text2); flex: 1; }
+.sctr { font-family: var(--mono); font-size: 12px; color: var(--text3); white-space: nowrap; }
+
+/* ── Progress ── */
+.prog-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+.prog-track {
+  flex: 1; height: 3px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.prog-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 2px;
+  transition: width .35s ease;
+}
+
+/* ── Card ── */
+.fc-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 24px;
+}
+
+/* ── SVG node/arrow animation ── */
+.fn { transition: opacity .3s ease; opacity: 0.50; }
+.fn.done   { opacity: 0.72; }
+.fn.active { opacity: 1.0;  }
+
+.fa { transition: opacity .3s ease; opacity: 0.25; stroke: #6e7898; }
+.fa.done   { opacity: 0.55; }
+.fa.active { opacity: 1.0;  }
+
+/* ── Light spot ── */
+.lspot { pointer-events: none; transition: opacity 0.28s ease; }
+
+/* ── Legend ── */
+.legend {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  padding: 14px 20px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 40px;
+}
+.li {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  color: var(--text3);
+}
+.ls { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+.ld { width: 14px; height: 14px; border-radius: 2px; flex-shrink: 0; transform: rotate(45deg); }
+
+/* ── Footer ── */
+.footer {
+  border-top: 1px solid var(--border);
+  padding-top: 28px;
+  margin-top: 48px;
+  font-size: 12px;
+  color: var(--text3);
+  font-family: var(--mono);
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+</style>
+</head>
+<body>
+<div class="page-wrap">
+
+<!-- ═══════ HEADER ═══════ -->
+<header class="site-header">
+  <div class="header-eyebrow">STM32H563 · OSFP-1.6T-DR8 · Bootloader v1.0</div>
+  <h1 class="header-title">MCU Firmware Upgrade Flow</h1>
+  <p class="header-sub">Three-phase CDB-driven upgrade: host downloads firmware via CDB → bootloader copies image to active slot → application boots with parameter restore. Hitless reset preserves CMIS link state; full reset reinitialises all IO from scratch.</p>
+  <div class="header-badges">
+    <span class="badge">CDB CMD 0109h</span>
+    <span class="badge">Hitless Reset</span>
+    <span class="badge">Full Reset</span>
+    <span class="badge">STM32H563 Cortex-M33</span>
+    <span class="badge">CMIS 5.2</span>
+    <span class="badge">Bootloader v1.0</span>
+  </div>
+</header>
+
+<!-- ═══════ CONTROLS ═══════ -->
+<div class="ctrl-bar">
+  <span class="scn-label">Scenario</span>
+  <button class="scn-btn" id="btn-h" onclick="selectScn('hitless')">◆ Hitless Reset</button>
+  <button class="scn-btn" id="btn-f" onclick="selectScn('full')">◆ Full Reset</button>
+  <div class="divr"></div>
+  <button class="cb" id="btn-prev" onclick="nav(-1)" disabled>← Prev</button>
+  <button class="cb play" id="btn-play" onclick="togglePlay()">▶ Play</button>
+  <button class="cb" id="btn-next" onclick="nav(1)">Next →</button>
+  <button class="cb" onclick="doReset()" title="Reset">↺</button>
+</div>
+
+<!-- ═══════ STEP PANEL ═══════ -->
+<div class="step-panel">
+  <div class="snum" id="snum">—</div>
+  <div class="stxt" id="stxt">Select a scenario above, then press Play or step through with Next →</div>
+  <div class="sctr" id="sctr"></div>
+</div>
+
+<!-- ═══════ PROGRESS ═══════ -->
+<div class="prog-wrap">
+  <div class="prog-track"><div class="prog-fill" id="pfill" style="width:0%"></div></div>
+</div>
+
+<!-- ═══════ FLOWCHART SVG ═══════ -->
+<div class="fc-card">
+<svg id="fc" width="100%" viewBox="0 0 980 648" xmlns="http://www.w3.org/2000/svg">
+<defs>
+  <marker id="mh" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+    <path d="M2 1.5L8 5L2 8.5" fill="none" stroke="#6e7898" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  </marker>
+  <!-- Glow filter for light spot -->
+  <filter id="spot-glow" x="-250%" y="-250%" width="600%" height="600%">
+    <feGaussianBlur stdDeviation="5" result="blur"/>
+    <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+  </filter>
+  <filter id="spot-core" x="-150%" y="-150%" width="400%" height="400%">
+    <feGaussianBlur stdDeviation="2" result="blur"/>
+    <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+  </filter>
+</defs>
+
+<!-- ══════════ PHASE CONTAINERS ══════════ -->
+<rect x="8"   y="36" width="302" height="578" rx="12" fill="none" stroke="#2e3448" stroke-width="1" stroke-dasharray="6 4"/>
+<rect x="328" y="36" width="306" height="578" rx="12" fill="none" stroke="#2e3448" stroke-width="1" stroke-dasharray="6 4"/>
+<rect x="652" y="36" width="320" height="578" rx="12" fill="none" stroke="#2e3448" stroke-width="1" stroke-dasharray="6 4"/>
+
+<!-- Phase ① badge -->
+<circle cx="38"  cy="36" r="16" fill="#152340" stroke="#4f8ef7" stroke-width="1.5"/>
+<text x="38"  y="42" text-anchor="middle" font-family="IBM Plex Mono" font-size="13" font-weight="600" fill="#4f8ef7">①</text>
+<text x="62"  y="42" font-family="IBM Plex Sans" font-size="12" font-weight="500" fill="#e2e6f0">Firmware Download</text>
+
+<!-- Phase ② badge -->
+<circle cx="358" cy="36" r="16" fill="#1c1535" stroke="#a87ef5" stroke-width="1.5"/>
+<text x="358" y="42" text-anchor="middle" font-family="IBM Plex Mono" font-size="13" font-weight="600" fill="#a87ef5">②</text>
+<text x="382" y="42" font-family="IBM Plex Sans" font-size="12" font-weight="500" fill="#e2e6f0">Run Image (CMD 0109h)</text>
+
+<!-- Phase ③ badge -->
+<circle cx="682" cy="36" r="16" fill="#0e2418" stroke="#52c77e" stroke-width="1.5"/>
+<text x="682" y="42" text-anchor="middle" font-family="IBM Plex Mono" font-size="13" font-weight="600" fill="#52c77e">③</text>
+<text x="706" y="42" font-family="IBM Plex Sans" font-size="12" font-weight="500" fill="#e2e6f0">MCU Initialization</text>
+
+<!-- ════════════════════════════════
+     PHASE ①
+════════════════════════════════ -->
+
+<!-- p1h: CDB download header -->
+<g id="p1h" class="fn">
+  <rect x="22" y="52" width="272" height="54" rx="8" fill="#181c28" stroke="#303850" stroke-width="1" stroke-dasharray="5 3"/>
+  <text x="158" y="72" text-anchor="middle" font-family="IBM Plex Sans" font-size="13" font-weight="500" fill="#e2e6f0" dominant-baseline="central">CDB download</text>
+  <text x="158" y="90" text-anchor="middle" font-family="IBM Plex Sans" font-size="11" fill="#e2e6f0" dominant-baseline="central">with host interaction</text>
+</g>
+
+<path id="a_h1" class="fa" d="M158 106 L158 126" stroke="#6e7898" stroke-width="1.5" fill="none" marker-end="url(#mh)"/>
+
+<!-- p1n1: Run CMD 0109h -->
+<g id="p1n1" class="fn">
+  <rect x="28" y="126" width="260" height="44" rx="8" fill="#152340" stroke="#2a5aa0" stroke-width="1.2"/>
+  <text x="158" y="148" text-anchor="middle" font-family="IBM Plex Sans" font-size="13" font-weight="500" fill="#e2e6f0" dominant-baseline="central">Run CMD 0109h</text>
+</g>
+
+<path id="a_12" class="fa" d="M158 170 L158 190" stroke="#6e7898" stroke-width="1.5" fill="none" marker-end="url(#mh)"/>
+
+<!-- p1n2: Save parameters & hitless flag -->
+<g id="p1n2" class="fn">
+  <rect x="28" y="190" width="260" height="56" rx="8" fill="#152340" stroke="#2a5aa0" stroke-width="1.2"/>
+  <text x="158" y="211" text-anchor="middle" font-family="IBM Plex Sans" font-size="12" font-weight="500" fill="#e2e6f0" dominant-baseline="central">Save all parameters &amp;</text>
+  <text x="158" y="229" text-anchor="middle" font-family="IBM Plex Sans" font-size="12" fill="#c8d2ea" dominant-baseline="central">hitless reset flag to flash</text>
+</g>
+
+<path id="a_23" class="fa" d="M158 246 L158 266" stroke="#6e7898" stroke-width="1.5" fill="none" marker-end="url(#mh)"/>
+
+<!-- p1n3: Shutdown peripherals -->
+<g id="p1n3" class="fn">
+  <rect x="28" y="266" width="260" height="60" rx="8" fill="#1c1535" stroke="#5038a0" stroke-width="1.2"/>
+  <text x="158" y="284" text-anchor="middle" font-family="IBM Plex Sans" font-size="12" font-weight="500" fill="#e2e6f0" dominant-baseline="central">Shutdown all peripherals</text>
+  <text x="158" y="301" text-anchor="middle" font-family="IBM Plex Sans" font-size="11" fill="#c8d2ea" dominant-baseline="central">MCU (I²C slave / master / timer)</text>
+  <text x="158" y="318" text-anchor="middle" font-family="IBM Plex Mono" font-size="10" fill="#e2e6f0" dominant-baseline="central">HAL_DeInit() · PRIMASK applied</text>
+</g>
+
+<path id="a_3d" class="fa" d="M158 326 L158 348" stroke="#6e7898" stroke-width="1.5" fill="none" marker-end="url(#mh)"/>
+
+<!-- p1d: Decision — hitless reset flag set? -->
+<g id="p1d" class="fn">
+  <polygon points="158,348 270,400 158,452 46,400" fill="#281c08" stroke="#8a5a10" stroke-width="1.2"/>
+  <text x="158" y="392" text-anchor="middle" font-family="IBM Plex Sans" font-size="12" font-weight="500" fill="#e2e6f0" dominant-baseline="central">Hitless reset</text>
+  <text x="158" y="410" text-anchor="middle" font-family="IBM Plex Sans" font-size="12" font-weight="500" fill="#e2e6f0" dominant-baseline="central">flag set?</text>
+</g>
+<text x="26"  y="446" font-family="IBM Plex Sans" font-size="11" fill="#6dd4a8">Yes</text>
+<text x="243" y="446" font-family="IBM Plex Sans" font-size="11" fill="#e8624a">No</text>
+
+<!-- Arrow: diamond → p1yes (left branch) -->
+<path id="a_dy"  class="fa" d="M46 400 L18 400 L18 478 L26 478"  stroke="#6e7898" stroke-width="1.5" fill="none" marker-end="url(#mh)"/>
+<!-- Arrow: diamond → p1no  (right branch) -->
+<path id="a_dn"  class="fa" d="M270 400 L296 400 L296 478 L288 478" stroke="#6e7898" stroke-width="1.5" fill="none" marker-end="url(#mh)"/>
+
+<!-- p1yes: Call hitless_reset() -->
+<g id="p1yes" class="fn">
+  <rect x="26" y="466" width="120" height="50" rx="8" fill="#1c1535" stroke="#7860c0" stroke-width="1.5"/>
+  <text x="86" y="484" text-anchor="middle" font-family="IBM Plex Sans" font-size="12" font-weight="500" fill="#b090f8" dominant-baseline="central">Call</text>
+  <text x="86" y="502" text-anchor="middle" font-family="IBM Plex Mono" font-size="11" fill="#c0a8f8" dominant-baseline="central">hitless_reset()</text>
+</g>
+
+<!-- p1no: Call full_reset() -->
+<g id="p1no" class="fn">
+  <rect x="168" y="466" width="120" height="50" rx="8" fill="#2a1210" stroke="#903028" stroke-width="1.5"/>
+  <text x="228" y="484" text-anchor="middle" font-family="IBM Plex Sans" font-size="12" font-weight="500" fill="#f09080" dominant-baseline="central">Call</text>
+  <text x="228" y="502" text-anchor="middle" font-family="IBM Plex Mono" font-size="11" fill="#f09080" dominant-baseline="central">full_reset()</text>
+</g>
+
+<!-- ─── Phase ① → ② transition (routed through inter-phase gap) ─── -->
+<path id="a_yp2" class="fa" d="M86 516 L86 562 L314 562 L314 84 L328 84"
+  stroke="#6e7898" stroke-width="1.5" fill="none" stroke-dasharray="5 3" marker-end="url(#mh)"/>
+<path id="a_np2" class="fa" d="M228 516 L228 570 L320 570 L320 92 L328 92"
+  stroke="#6e7898" stroke-width="1.5" fill="none" stroke-dasharray="5 3" marker-end="url(#mh)"/>
+
+<!-- ════════════════════════════════
+     PHASE ②
+════════════════════════════════ -->
+
+<!-- p2h: Enter bootloader -->
+<g id="p2h" class="fn">
+  <rect x="342" y="52" width="278" height="54" rx="8" fill="#181c28" stroke="#5038a0" stroke-width="1" stroke-dasharray="5 3"/>
+  <text x="481" y="72" text-anchor="middle" font-family="IBM Plex Sans" font-size="13" font-weight="500" fill="#e2e6f0" dominant-baseline="central">Enter</text>
+  <text x="481" y="90" text-anchor="middle" font-family="IBM Plex Sans" font-size="13" font-weight="500" fill="#e2e6f0" dominant-baseline="central">bootloader</text>
+</g>
+
+<path id="a_p2h1" class="fa" d="M481 106 L481 126" stroke="#6e7898" stroke-width="1.5" fill="none" marker-end="url(#mh)"/>
+
+<!-- p2n1: Read hitless reset flag -->
+<g id="p2n1" class="fn">
+  <rect x="352" y="126" width="258" height="44" rx="8" fill="#152340" stroke="#2a5aa0" stroke-width="1.2"/>
+  <text x="481" y="148" text-anchor="middle" font-family="IBM Plex Sans" font-size="13" font-weight="500" fill="#e2e6f0" dominant-baseline="central">Read hitless reset flag</text>
+</g>
+
+<path id="a_p2n1d" class="fa" d="M481 170 L481 192" stroke="#6e7898" stroke-width="1.5" fill="none" marker-end="url(#mh)"/>
+
+<!-- p2d: Decision — hitless flag set? -->
+<g id="p2d" class="fn">
+  <polygon points="481,192 592,244 481,296 370,244" fill="#281c08" stroke="#8a5a10" stroke-width="1.2"/>
+  <text x="481" y="236" text-anchor="middle" font-family="IBM Plex Sans" font-size="12" font-weight="500" fill="#e2e6f0" dominant-baseline="central">Hitless reset</text>
+  <text x="481" y="254" text-anchor="middle" font-family="IBM Plex Sans" font-size="12" font-weight="500" fill="#e2e6f0" dominant-baseline="central">flag set?</text>
+</g>
+<text x="356" y="289" font-family="IBM Plex Sans" font-size="11" fill="#6dd4a8">Yes</text>
+<text x="561" y="289" font-family="IBM Plex Sans" font-size="11" fill="#e8624a">No</text>
+
+<!-- Arrow: p2d → p2yes (left: Yes — straight down from left point) -->
+<path id="a_p2dy" class="fa" d="M370 244 L370 304" stroke="#6e7898" stroke-width="1.5" fill="none" marker-end="url(#mh)"/>
+<!-- Arrow: p2d → p2no  (right: No — straight down from right point) -->
+<path id="a_p2dn" class="fa" d="M592 244 L592 304" stroke="#6e7898" stroke-width="1.5" fill="none" marker-end="url(#mh)"/>
+
+<!-- p2yes: Skip IO initialization -->
+<g id="p2yes" class="fn">
+  <rect x="344" y="304" width="176" height="44" rx="8" fill="#0e2820" stroke="#1a6045" stroke-width="1.2"/>
+  <text x="432" y="326" text-anchor="middle" font-family="IBM Plex Sans" font-size="12" font-weight="500" fill="#e2e6f0" dominant-baseline="central">Skip IO initialization</text>
+</g>
+
+<!-- p2no: Init IO Power up (blue button) -->
+<g id="p2no" class="fn">
+  <rect x="536" y="304" width="100" height="44" rx="8" fill="#152340" stroke="#4f8ef7" stroke-width="2"/>
+  <text x="586" y="321" text-anchor="middle" font-family="IBM Plex Sans" font-size="12" font-weight="500" fill="#7ab3f8" dominant-baseline="central">Init IO</text>
+  <text x="586" y="338" text-anchor="middle" font-family="IBM Plex Sans" font-size="11" fill="#90b8f8" dominant-baseline="central">Power up</text>
+</g>
+
+<!-- Convergence arrows from both branches → p2n2 -->
+<path id="a_p2yn2" class="fa" d="M432 348 L432 372" stroke="#6e7898" stroke-width="1.5" fill="none" marker-end="url(#mh)"/>
+<path id="a_p2nn2" class="fa" d="M586 348 L586 372" stroke="#6e7898" stroke-width="1.5" fill="none" marker-end="url(#mh)"/>
+
+<!-- p2n2: Copy new image to active image -->
+<g id="p2n2" class="fn">
+  <rect x="352" y="372" width="258" height="52" rx="8" fill="#1c1535" stroke="#5038a0" stroke-width="1.2"/>
+  <text x="481" y="391" text-anchor="middle" font-family="IBM Plex Sans" font-size="12" font-weight="500" fill="#e2e6f0" dominant-baseline="central">Copy new image</text>
+  <text x="481" y="409" text-anchor="middle" font-family="IBM Plex Sans" font-size="12" fill="#c8d2ea" dominant-baseline="central">to active image</text>
+</g>
+
+<path id="a_p2n2n3" class="fa" d="M481 424 L481 444" stroke="#6e7898" stroke-width="1.5" fill="none" marker-end="url(#mh)"/>
+
+<!-- p2n3: Jump to Active image -->
+<g id="p2n3" class="fn">
+  <rect x="352" y="444" width="258" height="46" rx="8" fill="#0e2820" stroke="#1a6045" stroke-width="1.5"/>
+  <text x="481" y="467" text-anchor="middle" font-family="IBM Plex Sans" font-size="13" font-weight="500" fill="#e2e6f0" dominant-baseline="central">Jump to Active image</text>
+</g>
+
+<!-- ─── Phase ② → ③ transition (gap corridor) ─── -->
+<path id="a_p2p3" class="fa" d="M610 467 L642 467 L642 84 L652 84"
+  stroke="#6e7898" stroke-width="1.5" fill="none" stroke-dasharray="5 3" marker-end="url(#mh)"/>
+
+<!-- ════════════════════════════════
+     PHASE ③
+════════════════════════════════ -->
+
+<!-- p3h: Run active image -->
+<g id="p3h" class="fn">
+  <rect x="666" y="52" width="298" height="54" rx="8" fill="#181c28" stroke="#286838" stroke-width="1" stroke-dasharray="5 3"/>
+  <text x="815" y="72" text-anchor="middle" font-family="IBM Plex Sans" font-size="13" font-weight="500" fill="#e2e6f0" dominant-baseline="central">Run</text>
+  <text x="815" y="90" text-anchor="middle" font-family="IBM Plex Sans" font-size="13" font-weight="500" fill="#e2e6f0" dominant-baseline="central">active image</text>
+</g>
+
+<path id="a_p3h1" class="fa" d="M815 106 L815 126" stroke="#6e7898" stroke-width="1.5" fill="none" marker-end="url(#mh)"/>
+
+<!-- p3n1: Read hitless reset flag -->
+<g id="p3n1" class="fn">
+  <rect x="676" y="126" width="278" height="44" rx="8" fill="#152340" stroke="#2a5aa0" stroke-width="1.2"/>
+  <text x="815" y="148" text-anchor="middle" font-family="IBM Plex Sans" font-size="13" font-weight="500" fill="#e2e6f0" dominant-baseline="central">Read hitless reset flag</text>
+</g>
+
+<path id="a_p3n1d" class="fa" d="M815 170 L815 192" stroke="#6e7898" stroke-width="1.5" fill="none" marker-end="url(#mh)"/>
+
+<!-- p3d: Decision — hitless flag set? -->
+<g id="p3d" class="fn">
+  <polygon points="815,192 928,244 815,296 702,244" fill="#281c08" stroke="#8a5a10" stroke-width="1.2"/>
+  <text x="815" y="236" text-anchor="middle" font-family="IBM Plex Sans" font-size="12" font-weight="500" fill="#e2e6f0" dominant-baseline="central">Hitless reset</text>
+  <text x="815" y="254" text-anchor="middle" font-family="IBM Plex Sans" font-size="12" font-weight="500" fill="#e2e6f0" dominant-baseline="central">flag set?</text>
+</g>
+<text x="686" y="289" font-family="IBM Plex Sans" font-size="11" fill="#6dd4a8">Yes</text>
+<text x="896" y="289" font-family="IBM Plex Sans" font-size="11" fill="#e8624a">No</text>
+
+<!-- Arrow: p3d → p3y1 (left: Yes) -->
+<path id="a_p3dy1" class="fa" d="M702 244 L672 244 L672 322 L666 322" stroke="#6e7898" stroke-width="1.5" fill="none" marker-end="url(#mh)"/>
+<!-- Arrow: p3d → p3no1 (right: No) -->
+<path id="a_p3dn1" class="fa" d="M928 244 L958 244 L958 324 L880 324" stroke="#6e7898" stroke-width="1.5" fill="none" marker-end="url(#mh)"/>
+
+<!-- p3y1: Import all parameters, clear hitless reset flag -->
+<g id="p3y1" class="fn">
+  <rect x="666" y="304" width="200" height="64" rx="8" fill="#152340" stroke="#2a5aa0" stroke-width="1.2"/>
+  <text x="766" y="322" text-anchor="middle" font-family="IBM Plex Sans" font-size="11" font-weight="500" fill="#e2e6f0" dominant-baseline="central">Import all parameters,</text>
+  <text x="766" y="340" text-anchor="middle" font-family="IBM Plex Sans" font-size="11" fill="#c8d2ea" dominant-baseline="central">clear hitless reset flag</text>
+  <text x="766" y="357" text-anchor="middle" font-family="IBM Plex Mono" font-size="10" fill="#e2e6f0" dominant-baseline="central">Restore AppSel · DPState</text>
+</g>
+
+<path id="a_p3y1y2" class="fa" d="M766 368 L766 386" stroke="#6e7898" stroke-width="1.5" fill="none" marker-end="url(#mh)"/>
+
+<!-- p3y2: Skip IO init, start all peripherals -->
+<g id="p3y2" class="fn">
+  <rect x="666" y="386" width="200" height="68" rx="8" fill="#0e2820" stroke="#1a6045" stroke-width="1.2"/>
+  <text x="766" y="404" text-anchor="middle" font-family="IBM Plex Sans" font-size="11" font-weight="500" fill="#e2e6f0" dominant-baseline="central">Skip IO initialization</text>
+  <text x="766" y="421" text-anchor="middle" font-family="IBM Plex Sans" font-size="11" fill="#c8d2ea" dominant-baseline="central">Start all peripherals</text>
+  <text x="766" y="438" text-anchor="middle" font-family="IBM Plex Mono" font-size="10" fill="#e2e6f0" dominant-baseline="central">I²C slave / master / timers</text>
+</g>
+
+<!-- p3no1: Init IO Power up (blue button) -->
+<g id="p3no1" class="fn">
+  <rect x="880" y="304" width="82" height="46" rx="8" fill="#152340" stroke="#4f8ef7" stroke-width="2"/>
+  <text x="921" y="321" text-anchor="middle" font-family="IBM Plex Sans" font-size="11" font-weight="500" fill="#7ab3f8" dominant-baseline="central">Init IO</text>
+  <text x="921" y="338" text-anchor="middle" font-family="IBM Plex Sans" font-size="11" fill="#90b8f8" dominant-baseline="central">Power up</text>
+</g>
+
+<path id="a_p3n1n2" class="fa" d="M921 350 L921 370" stroke="#6e7898" stroke-width="1.5" fill="none" marker-end="url(#mh)"/>
+
+<!-- p3no2: DataPath Init (blue button) -->
+<g id="p3no2" class="fn">
+  <rect x="880" y="370" width="82" height="46" rx="8" fill="#152340" stroke="#4f8ef7" stroke-width="2"/>
+  <text x="921" y="387" text-anchor="middle" font-family="IBM Plex Sans" font-size="11" font-weight="500" fill="#7ab3f8" dominant-baseline="central">DataPath</text>
+  <text x="921" y="404" text-anchor="middle" font-family="IBM Plex Sans" font-size="11" fill="#90b8f8" dominant-baseline="central">Init</text>
+</g>
+
+<!-- Convergence: both paths → p3end -->
+<path id="a_p3y2e"  class="fa" d="M766 454 L766 476" stroke="#6e7898" stroke-width="1.5" fill="none" marker-end="url(#mh)"/>
+<path id="a_p3n2e"  class="fa" d="M921 416 L921 476" stroke="#6e7898" stroke-width="1.5" fill="none" marker-end="url(#mh)"/>
+
+<!-- p3end: enter DataPath Activated -->
+<g id="p3end" class="fn">
+  <rect x="666" y="476" width="298" height="54" rx="8" fill="#0e2418" stroke="#286838" stroke-width="2"/>
+  <text x="815" y="496" text-anchor="middle" font-family="IBM Plex Sans" font-size="13" font-weight="600" fill="#52c77e" dominant-baseline="central">enter</text>
+  <text x="815" y="515" text-anchor="middle" font-family="IBM Plex Sans" font-size="13" font-weight="600" fill="#52c77e" dominant-baseline="central">DataPath Activated</text>
+</g>
+
+</svg>
+</div><!-- /fc-card -->
+
+<!-- ═══════ LEGEND ═══════ -->
+<div class="legend">
+  <div class="li"><div class="ls" style="background:#152340;border:1px solid #2a5aa0;"></div>MCU process step</div>
+  <div class="li"><div class="ls" style="background:#1c1535;border:1px solid #5038a0;"></div>Peripheral / memory op</div>
+  <div class="li"><div class="ld" style="background:#281c08;border:1px solid #8a5a10;"></div>Decision</div>
+  <div class="li"><div class="ls" style="background:#152340;border:2px solid #4f8ef7;"></div>IO / HW init (full reset)</div>
+  <div class="li"><div class="ls" style="background:#1c1535;border:1.5px solid #7860c0;"></div>Hitless reset path</div>
+  <div class="li"><div class="ls" style="background:#2a1210;border:1.5px solid #903028;"></div>Full reset path</div>
+  <div class="li"><div class="ls" style="background:#0e2418;border:2px solid #286838;"></div>DataPath Activated ✓</div>
+</div>
+
+<!-- ═══════ FOOTER ═══════ -->
+<footer class="footer">
+  <span>STM32H563 · OSFP-1.6T-DR8-H563</span>
+  <span>Bootloader v1.0 · CMIS 5.2</span>
+  <span>Firmware upgrade flow · 2026</span>
+</footer>
+
+</div><!-- /page-wrap -->
+
+<!-- ═══════════════════════════════════════════
+     ANIMATION ENGINE
+════════════════════════════════════════════ -->
+<script>
+/* ── Step definitions ── */
+const S = {
+  hitless: [
+    { n:['p1h'],            a:[],           lbl:'Phase ①: CDB download session begins with host' },
+    { n:['p1n1'],           a:['a_h1'],     lbl:'Run CMD 0109h — firmware update command received via CDB' },
+    { n:['p1n2'],           a:['a_12'],     lbl:'Save all parameters and hitless reset flag to flash' },
+    { n:['p1n3'],           a:['a_23'],     lbl:'Shutdown all MCU peripherals (I²C slave / master / timer)' },
+    { n:['p1d'],            a:['a_3d'],     lbl:'Decision: is the hitless reset flag set in flash?' },
+    { n:['p1yes'],          a:['a_dy'],     lbl:'Yes → Call hitless_reset() — soft reset, link state preserved in flash' },
+    { n:['p2h'],            a:['a_yp2'],    lbl:'Phase ②: bootloader entered via hitless reset vector' },
+    { n:['p2n1'],           a:['a_p2h1'],   lbl:'Bootloader reads hitless reset flag from flash' },
+    { n:['p2d'],            a:['a_p2n1d'],  lbl:'Decision: is hitless reset flag set?' },
+    { n:['p2yes'],          a:['a_p2dy'],   lbl:'Yes → skip IO initialisation (hardware already configured)' },
+    { n:['p2n2'],           a:['a_p2yn2'],  lbl:'Copy new image to active image slot in flash' },
+    { n:['p2n3'],           a:['a_p2n2n3'], lbl:'Jump to Active image — begin executing upgraded firmware' },
+    { n:['p3h'],            a:['a_p2p3'],   lbl:'Phase ③: active image running — MCU initialisation begins' },
+    { n:['p3n1'],           a:['a_p3h1'],   lbl:'Application reads hitless reset flag from flash' },
+    { n:['p3d'],            a:['a_p3n1d'],  lbl:'Decision: is hitless reset flag set?' },
+    { n:['p3y1'],           a:['a_p3dy1'],  lbl:'Yes → import all saved parameters, clear hitless reset flag' },
+    { n:['p3y2'],           a:['a_p3y1y2'], lbl:'Skip IO init; start all peripherals (I²C slave / master / timers)' },
+    { n:['p3end'],          a:['a_p3y2e'],  lbl:'✓ DataPath Activated — hitless upgrade complete, link preserved' },
+  ],
+  full: [
+    { n:['p1h'],            a:[],           lbl:'Phase ①: CDB download session begins with host' },
+    { n:['p1n1'],           a:['a_h1'],     lbl:'Run CMD 0109h — firmware update command received via CDB' },
+    { n:['p1n2'],           a:['a_12'],     lbl:'Save all parameters and hitless reset flag to flash' },
+    { n:['p1n3'],           a:['a_23'],     lbl:'Shutdown all MCU peripherals (I²C slave / master / timer)' },
+    { n:['p1d'],            a:['a_3d'],     lbl:'Decision: is the hitless reset flag set in flash?' },
+    { n:['p1no'],           a:['a_dn'],     lbl:'No → Call full_reset() — hardware reset, link will be interrupted' },
+    { n:['p2h'],            a:['a_np2'],    lbl:'Phase ②: bootloader entered from cold reset vector' },
+    { n:['p2n1'],           a:['a_p2h1'],   lbl:'Bootloader reads hitless reset flag from flash' },
+    { n:['p2d'],            a:['a_p2n1d'],  lbl:'Decision: is hitless reset flag set?' },
+    { n:['p2no'],           a:['a_p2dn'],   lbl:'No → Init IO Power up: full peripheral initialisation sequence' },
+    { n:['p2n2'],           a:['a_p2nn2'],  lbl:'Copy new image to active image slot in flash' },
+    { n:['p2n3'],           a:['a_p2n2n3'], lbl:'Jump to Active image — begin executing upgraded firmware' },
+    { n:['p3h'],            a:['a_p2p3'],   lbl:'Phase ③: active image running — MCU initialisation begins' },
+    { n:['p3n1'],           a:['a_p3h1'],   lbl:'Application reads hitless reset flag from flash' },
+    { n:['p3d'],            a:['a_p3n1d'],  lbl:'Decision: is hitless reset flag set?' },
+    { n:['p3no1'],          a:['a_p3dn1'],  lbl:'No → Init IO Power up: full hardware bring-up sequence' },
+    { n:['p3no2'],          a:['a_p3n1n2'], lbl:'DataPath Init: initialise all data path lanes from scratch' },
+    { n:['p3end'],          a:['a_p3n2e'],  lbl:'✓ DataPath Activated — full reset upgrade complete' },
+  ]
+};
+
+const ALL_N = ['p1h','p1n1','p1n2','p1n3','p1d','p1yes','p1no',
+               'p2h','p2n1','p2d','p2yes','p2no','p2n2','p2n3',
+               'p3h','p3n1','p3d','p3y1','p3y2','p3no1','p3no2','p3end'];
+
+const ALL_A = ['a_h1','a_12','a_23','a_3d','a_dy','a_dn',
+               'a_yp2','a_np2',
+               'a_p2h1','a_p2n1d','a_p2dy','a_p2dn','a_p2yn2','a_p2nn2','a_p2n2n3',
+               'a_p2p3',
+               'a_p3h1','a_p3n1d','a_p3dy1','a_p3dn1','a_p3y1y2','a_p3n1n2',
+               'a_p3y2e','a_p3n2e'];
+
+let scn = null, cur = -1, prevCur = -1, playing = false, timer = null;
+
+/* ── helpers ── */
+function el(id) { return document.getElementById(id); }
+
+function clearAll() {
+  ALL_N.forEach(id => { const e = el(id); if(e) e.className='fn'; });
+  ALL_A.forEach(id => { const e = el(id); if(e) e.className='fa'; });
+}
+
+/* ═══════════════════════════════════════
+   LIGHT SPOT — travels along arrow paths
+═══════════════════════════════════════ */
+function fireSpot(arrowIds) {
+  const svg = el('fc');
+  const NS  = 'http://www.w3.org/2000/svg';
+  const haloColor = scn === 'hitless' ? '#a87ef5' : '#e8624a';
+
+  /* remove leftover spots from previous step */
+  svg.querySelectorAll('.lspot').forEach(e => e.remove());
+
+  if (!arrowIds || !arrowIds.length) return;
+
+  arrowIds.forEach(aid => {
+    const arrow = el(aid);
+    if (!arrow) return;
+    const d = arrow.getAttribute('d');
+    if (!d) return;
+
+    /* long phase-transition arrows get a slower spot */
+    const isLong = (aid === 'a_yp2' || aid === 'a_np2' || aid === 'a_p2p3');
+    const dur    = isLong ? '1.05s' : '0.65s';
+    const fadeDl = isLong ? 950      : 580;   /* ms before fade-out starts */
+
+    /* ── outer halo ── */
+    const halo = document.createElementNS(NS, 'circle');
+    halo.setAttribute('r', '9');
+    halo.setAttribute('fill', haloColor);
+    halo.setAttribute('opacity', '0.55');
+    halo.setAttribute('filter', 'url(#spot-glow)');
+    halo.setAttribute('class', 'lspot');
+    const am1 = document.createElementNS(NS, 'animateMotion');
+    am1.setAttribute('path', d);
+    am1.setAttribute('dur', dur);
+    am1.setAttribute('fill', 'freeze');
+    halo.appendChild(am1);
+    svg.appendChild(halo);
+
+    /* ── bright core ── */
+    const core = document.createElementNS(NS, 'circle');
+    core.setAttribute('r', '4');
+    core.setAttribute('fill', '#ffffff');
+    core.setAttribute('filter', 'url(#spot-core)');
+    core.setAttribute('class', 'lspot');
+    const am2 = document.createElementNS(NS, 'animateMotion');
+    am2.setAttribute('path', d);
+    am2.setAttribute('dur', dur);
+    am2.setAttribute('fill', 'freeze');
+    core.appendChild(am2);
+    svg.appendChild(core);
+
+    /* ── tiny sparkle trail ── */
+    const spark = document.createElementNS(NS, 'circle');
+    spark.setAttribute('r', '2');
+    spark.setAttribute('fill', '#ffffff');
+    spark.setAttribute('opacity', '0.7');
+    spark.setAttribute('class', 'lspot');
+    const am3 = document.createElementNS(NS, 'animateMotion');
+    am3.setAttribute('path', d);
+    am3.setAttribute('dur', dur);
+    am3.setAttribute('keyPoints', '0; 0.85');
+    am3.setAttribute('keyTimes',  '0; 1');
+    am3.setAttribute('fill', 'freeze');
+    spark.appendChild(am3);
+    svg.appendChild(spark);
+
+    /* kick off all three animations together */
+    requestAnimationFrame(() => {
+      am1.beginElement();
+      am2.beginElement();
+      am3.beginElement();
+
+      /* fade out, then remove */
+      setTimeout(() => {
+        [halo, core, spark].forEach(c => { c.style.opacity = '0'; });
+        setTimeout(() => [halo, core, spark].forEach(c => c.remove()), 320);
+      }, fadeDl);
+    });
+  });
+}
+
+/* ── render ── */
+function render(fwd) {
+  if (!scn) return;
+  const steps = S[scn];
+  clearAll();
+
+  for (let i = 0; i <= cur; i++) {
+    const cls  = (i === cur) ? 'fn active' : 'fn done';
+    const acls = (i === cur) ? 'fa active' : 'fa done';
+    steps[i].n.forEach(id => { const e=el(id); if(e) e.className=cls; });
+    steps[i].a.forEach(id => { const e=el(id); if(e) e.className=acls; });
+  }
+
+  const total = steps.length;
+  const pct   = cur < 0 ? 0 : ((cur+1)/total*100);
+  const isEnd = cur === total-1;
+
+  el('pfill').style.width      = pct + '%';
+  el('pfill').style.background = scn==='hitless' ? '#a87ef5' : '#e8624a';
+
+  if (cur < 0) {
+    el('snum').textContent  = '—';
+    el('snum').style.color  = 'var(--accent)';
+    el('stxt').textContent  = (scn==='hitless'
+      ? 'Hitless Reset scenario selected — link state is preserved across the upgrade.'
+      : 'Full Reset scenario selected — all IO is reinitialised from scratch.');
+    el('sctr').textContent  = '0 / '+total;
+  } else {
+    el('snum').textContent  = cur+1;
+    el('snum').style.color  = isEnd ? 'var(--green)' : (scn==='hitless' ? 'var(--purple)' : 'var(--coral)');
+    el('stxt').textContent  = steps[cur].lbl;
+    el('sctr').textContent  = (cur+1)+' / '+total;
+  }
+
+  el('btn-prev').disabled     = cur <= -1;
+  el('btn-next').disabled     = isEnd;
+  el('btn-next').textContent  = isEnd ? 'Done' : 'Next →';
+
+  /* fire light spot only when moving forward and step has arrows */
+  if (fwd && cur >= 0 && steps[cur].a.length > 0) {
+    fireSpot(steps[cur].a);
+  }
+}
+
+/* ── scenario select ── */
+function selectScn(s) {
+  stopPlay();
+  scn = s; cur = -1; prevCur = -1;
+  el('btn-h').className = 'scn-btn' + (s==='hitless' ? ' sh' : '');
+  el('btn-f').className = 'scn-btn' + (s==='full'    ? ' sf' : '');
+  el('fc').querySelectorAll('.lspot').forEach(e => e.remove());
+  render(false);
+}
+
+/* ── nav ── */
+function nav(d) {
+  if (!scn) return;
+  const max = S[scn].length - 1;
+  prevCur = cur;
+  cur = Math.max(-1, Math.min(max, cur + d));
+  render(d > 0);   /* spot only fires going forward */
+}
+
+/* ── play / pause ── */
+function togglePlay() {
+  if (!scn) { selectScn('hitless'); }
+  playing = !playing;
+  const btn = el('btn-play');
+  if (playing) {
+    btn.className   = 'cb paused';
+    btn.textContent = '⏸ Pause';
+    autoStep();
+  } else {
+    stopPlay();
+  }
+}
+
+function autoStep() {
+  if (!playing) return;
+  const max = S[scn].length - 1;
+  if (cur < max) {
+    cur++;
+    render(true);
+    timer = setTimeout(autoStep, 1500);
+  } else {
+    stopPlay();
+  }
+}
+
+function stopPlay() {
+  playing = false;
+  if (timer) { clearTimeout(timer); timer = null; }
+  const btn = el('btn-play');
+  btn.className   = 'cb play';
+  btn.textContent = '▶ Play';
+}
+
+/* ── reset ── */
+function doReset() {
+  stopPlay();
+  cur = -1; prevCur = -1;
+  el('fc').querySelectorAll('.lspot').forEach(e => e.remove());
+  clearAll();
+  if (scn) render(false);
+  else {
+    el('snum').textContent  = '—';
+    el('stxt').textContent  = 'Select a scenario above, then press Play or step through with Next →';
+    el('sctr').textContent  = '';
+    el('pfill').style.width = '0%';
+  }
+  el('btn-prev').disabled    = true;
+  el('btn-next').disabled    = false;
+  el('btn-next').textContent = 'Next →';
+}
+
+/* ── init ── */
+clearAll();
+</script>
+</body>
+</html>
