@@ -1,0 +1,2360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>1.6T OSFP SR8 Design Proposal</title>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #050d1a;
+    --bg2: #081526;
+    --bg3: #0c1d36;
+    --panel: rgba(12,29,56,0.85);
+    --border: rgba(0,210,230,0.18);
+    --cyan: #00d2e6;
+    --cyan2: #00f5ff;
+    --teal: #00b49c;
+    --blue: #1a6fff;
+    --amber: #e8a200;
+    --green: #1de97a;
+    --red: #ff4d6a;
+    --text: #d0e8f5;
+    --text2: #7ba8c8;
+    --text3: #3e6484;
+    --head: #f0fbff;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'Barlow', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    overflow-x: hidden;
+    line-height: 1.6;
+  }
+
+  /* ── Canvas BG ── */
+  #bg-canvas {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    z-index: 0; pointer-events: none;
+    opacity: 0.35;
+  }
+
+  /* ── Navigation ── */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    background: rgba(5,13,26,0.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 2rem;
+    display: flex; align-items: center; gap: 2rem;
+    height: 56px;
+  }
+
+  .nav-logo {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 1.05rem; font-weight: 700;
+    color: var(--cyan); letter-spacing: 0.08em;
+    white-space: nowrap;
+  }
+
+  nav ul { display: flex; gap: 0.1rem; list-style: none; flex: 1; }
+  nav ul li a {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 0.82rem; font-weight: 600;
+    letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--text2); text-decoration: none;
+    padding: 0.4rem 0.75rem;
+    border-radius: 4px;
+    transition: color 0.2s, background 0.2s;
+  }
+  nav ul li a:hover { color: var(--cyan); background: rgba(0,210,230,0.08); }
+  nav ul li a.active { color: var(--cyan2); }
+
+  .nav-badge {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.68rem; color: var(--teal);
+    border: 1px solid var(--teal);
+    padding: 2px 8px; border-radius: 3px;
+    letter-spacing: 0.05em;
+  }
+
+  /* ── Sections ── */
+  section {
+    position: relative; z-index: 1;
+    max-width: 1200px; margin: 0 auto;
+    padding: 5rem 2rem;
+  }
+
+  /* ── Hero ── */
+  #hero {
+    min-height: 100vh;
+    display: flex; flex-direction: column;
+    justify-content: center; align-items: flex-start;
+    padding-top: 96px; max-width: 100%;
+    padding-left: clamp(2rem, 8vw, 10rem);
+    padding-right: clamp(2rem, 8vw, 10rem);
+  }
+
+  .hero-tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem; font-weight: 400;
+    color: var(--teal); letter-spacing: 0.15em;
+    text-transform: uppercase;
+    border: 1px solid rgba(0,180,156,0.35);
+    padding: 4px 14px; border-radius: 3px;
+    margin-bottom: 1.5rem;
+    animation: fadeUp 0.8s ease 0.2s both;
+    display: inline-block;
+  }
+
+  .hero-title {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: clamp(3rem, 7vw, 6rem);
+    font-weight: 700; line-height: 1.0;
+    color: var(--head);
+    letter-spacing: -0.01em;
+    animation: fadeUp 0.8s ease 0.4s both;
+  }
+
+  .hero-title .accent { color: var(--cyan); }
+  .hero-title .thin { font-weight: 400; color: var(--text2); }
+
+  .hero-sub {
+    margin-top: 1.5rem;
+    font-size: 1.1rem; color: var(--text2);
+    max-width: 600px; line-height: 1.7;
+    animation: fadeUp 0.8s ease 0.6s both;
+  }
+
+  .hero-stats {
+    display: flex; gap: 2.5rem; margin-top: 3rem;
+    animation: fadeUp 0.8s ease 0.8s both;
+    flex-wrap: wrap;
+  }
+
+  .stat-item { display: flex; flex-direction: column; gap: 4px; }
+
+  .stat-num {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 2.4rem; font-weight: 700;
+    color: var(--cyan); line-height: 1;
+  }
+
+  .stat-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.68rem; color: var(--text3);
+    letter-spacing: 0.1em; text-transform: uppercase;
+  }
+
+  .stat-divider {
+    width: 1px; background: var(--border);
+    align-self: stretch; margin: 4px 0;
+  }
+
+  .hero-cta {
+    margin-top: 2.5rem;
+    display: flex; gap: 1rem; flex-wrap: wrap;
+    animation: fadeUp 0.8s ease 1s both;
+  }
+
+  .btn {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 0.9rem; font-weight: 600;
+    letter-spacing: 0.06em; text-transform: uppercase;
+    padding: 0.65rem 1.8rem;
+    border-radius: 4px; cursor: pointer;
+    text-decoration: none; border: none;
+    transition: all 0.2s;
+  }
+
+  .btn-primary {
+    background: var(--cyan);
+    color: #030b16;
+  }
+  .btn-primary:hover { background: var(--cyan2); transform: translateY(-1px); }
+
+  .btn-outline {
+    background: transparent;
+    color: var(--cyan); border: 1px solid rgba(0,210,230,0.4);
+  }
+  .btn-outline:hover { background: rgba(0,210,230,0.08); border-color: var(--cyan); }
+
+  /* ── Optical Path Visualization ── */
+  .optical-viz {
+    position: fixed; top: 0; right: 0;
+    width: 50vw; height: 100vh;
+    z-index: 0; pointer-events: none;
+    opacity: 0.5;
+  }
+
+  /* ── Section Styles ── */
+  .section-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem; letter-spacing: 0.15em;
+    text-transform: uppercase; color: var(--teal);
+    margin-bottom: 0.75rem;
+    display: flex; align-items: center; gap: 0.5rem;
+  }
+
+  .section-label::before {
+    content: ''; display: inline-block;
+    width: 24px; height: 1px; background: var(--teal);
+  }
+
+  .section-title {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: clamp(1.8rem, 3vw, 2.8rem);
+    font-weight: 700; color: var(--head);
+    margin-bottom: 0.5rem; line-height: 1.1;
+  }
+
+  .section-desc {
+    color: var(--text2); font-size: 1rem;
+    max-width: 640px; line-height: 1.7;
+    margin-bottom: 3rem;
+  }
+
+  /* ── Cards ── */
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.5rem;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.3s;
+  }
+
+  .card::before {
+    content: ''; position: absolute;
+    top: 0; left: 0; right: 0; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .card:hover { border-color: rgba(0,210,230,0.4); }
+  .card:hover::before { opacity: 1; }
+
+  .card-title {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 1.1rem; font-weight: 600;
+    color: var(--head); margin-bottom: 0.75rem;
+    letter-spacing: 0.03em;
+  }
+
+  /* ── Grid ── */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.25rem; }
+  .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; }
+
+  @media (max-width: 900px) { .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 600px) { .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; } }
+
+  /* ── Highlight List ── */
+  .hl-list { list-style: none; display: flex; flex-direction: column; gap: 0.7rem; }
+
+  .hl-list li {
+    display: flex; align-items: flex-start; gap: 0.75rem;
+    font-size: 0.95rem; color: var(--text);
+  }
+
+  .hl-list li::before {
+    content: '▸'; color: var(--cyan);
+    font-size: 0.8rem; margin-top: 3px; flex-shrink: 0;
+  }
+
+  /* ── IC Table ── */
+  .ic-table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+
+  .ic-table thead tr {
+    border-bottom: 1px solid rgba(0,210,230,0.3);
+  }
+
+  .ic-table th {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.68rem; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--teal);
+    padding: 0.5rem 0.75rem; text-align: left;
+    font-weight: 500;
+  }
+
+  .ic-table td {
+    padding: 0.6rem 0.75rem;
+    border-bottom: 1px solid rgba(0,210,230,0.08);
+    color: var(--text);
+  }
+
+  .ic-table tr:hover td { background: rgba(0,210,230,0.04); }
+
+  .ic-table td:first-child {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 600; color: var(--head); font-size: 0.95rem;
+  }
+
+  .chip-tag {
+    display: inline-block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65rem; letter-spacing: 0.05em;
+    color: var(--cyan); background: rgba(0,210,230,0.1);
+    border: 1px solid rgba(0,210,230,0.25);
+    padding: 2px 7px; border-radius: 3px;
+  }
+
+  /* ── RF Simulation Results ── */
+  .sim-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 1.25rem;
+  }
+
+  .sim-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px; padding: 1.25rem;
+    position: relative; overflow: hidden;
+  }
+
+  .sim-header {
+    display: flex; justify-content: space-between;
+    align-items: center; margin-bottom: 1rem;
+  }
+
+  .sim-name {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.9rem; font-weight: 500; color: var(--head);
+  }
+
+  .pass-badge {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65rem; letter-spacing: 0.08em;
+    background: rgba(29,233,122,0.12);
+    color: var(--green); border: 1px solid rgba(29,233,122,0.3);
+    padding: 2px 8px; border-radius: 3px;
+  }
+
+  .spec-row { margin-bottom: 0.75rem; }
+
+  .spec-row-header {
+    display: flex; justify-content: space-between;
+    margin-bottom: 3px;
+  }
+
+  .spec-name {
+    font-family: 'Barlow', sans-serif;
+    font-size: 0.78rem; color: var(--text2);
+  }
+
+  .spec-val {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem; color: var(--text);
+  }
+
+  .bar-track {
+    height: 4px; background: rgba(255,255,255,0.06);
+    border-radius: 2px; overflow: hidden;
+  }
+
+  .bar-fill {
+    height: 100%; border-radius: 2px;
+    background: linear-gradient(90deg, var(--teal), var(--cyan));
+    width: 0%;
+    transition: width 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .bar-fill.pass { background: linear-gradient(90deg, #0e9e52, var(--green)); }
+
+  /* ── PCB Stackup ── */
+  .stackup-container { display: flex; gap: 3rem; align-items: flex-start; flex-wrap: wrap; }
+
+  .stackup-layers {
+    flex: 0 0 auto;
+    display: flex; flex-direction: column; gap: 0;
+  }
+
+  .pcb-layer {
+    display: flex; align-items: center;
+    position: relative;
+  }
+
+  .layer-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65rem; color: var(--text3);
+    width: 80px; text-align: right;
+    padding-right: 12px;
+  }
+
+  .layer-bar {
+    height: 14px; border-radius: 1px;
+    display: flex; align-items: center;
+    padding: 0 8px;
+  }
+
+  .layer-copper { background: rgba(184,140,0,0.7); min-width: 200px; }
+  .layer-prepreg { background: rgba(40,90,60,0.5); min-width: 200px; height: 6px; }
+  .layer-core { background: rgba(50,110,80,0.6); min-width: 200px; }
+  .layer-gnd { background: rgba(100,80,10,0.6); min-width: 200px; }
+  .layer-pwr { background: rgba(120,60,10,0.6); min-width: 200px; }
+
+  .layer-name {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.6rem; color: rgba(255,255,255,0.7);
+    letter-spacing: 0.05em;
+  }
+
+  .stackup-specs { flex: 1; min-width: 280px; }
+
+  .spec-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: rgba(0,210,230,0.06); border: 1px solid var(--border);
+    border-radius: 6px; padding: 0.6rem 1rem;
+    margin: 0.3rem;
+  }
+
+  .spec-badge-num {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 1.4rem; font-weight: 700; color: var(--cyan);
+  }
+
+  .spec-badge-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65rem; color: var(--text2);
+    line-height: 1.3;
+  }
+
+  /* ── Power Integrity ── */
+  .pi-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+  }
+
+  .pi-item {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 8px; padding: 1.25rem;
+  }
+
+  .pi-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.68rem; letter-spacing: 0.1em;
+    color: var(--text3); text-transform: uppercase;
+    margin-bottom: 0.4rem;
+  }
+
+  .pi-value {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 1.9rem; font-weight: 700; color: var(--cyan);
+    line-height: 1;
+    margin-bottom: 0.2rem;
+  }
+
+  .pi-desc {
+    font-size: 0.82rem; color: var(--text2);
+  }
+
+  .pi-status-pass {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65rem; color: var(--green);
+    background: rgba(29,233,122,0.08);
+    border: 1px solid rgba(29,233,122,0.2);
+    padding: 2px 8px; border-radius: 3px; margin-top: 0.4rem;
+  }
+
+  /* ── Firmware ── */
+  .fw-blocks {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1.25rem;
+  }
+
+  .fw-block {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 8px; padding: 1.25rem;
+  }
+
+  .fw-icon {
+    width: 36px; height: 36px;
+    background: rgba(0,210,230,0.1);
+    border: 1px solid rgba(0,210,230,0.25);
+    border-radius: 6px; display: flex;
+    align-items: center; justify-content: center;
+    font-size: 1.1rem; margin-bottom: 0.75rem;
+  }
+
+  .fw-block-title {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 1rem; font-weight: 600; color: var(--head);
+    margin-bottom: 0.4rem;
+  }
+
+  .fw-block-text {
+    font-size: 0.83rem; color: var(--text2); line-height: 1.6;
+  }
+
+  .mono-tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem; color: var(--amber);
+    background: rgba(232,162,0,0.1);
+    border: 1px solid rgba(232,162,0,0.2);
+    padding: 1px 6px; border-radius: 3px;
+  }
+
+  /* ── Optical Signal Flow ── */
+  .signal-flow {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 8px; padding: 2rem;
+    overflow-x: auto;
+  }
+
+  .flow-row {
+    display: flex; align-items: center;
+    gap: 0; margin-bottom: 0.5rem;
+  }
+
+  .flow-block {
+    background: rgba(0,210,230,0.08);
+    border: 1px solid rgba(0,210,230,0.25);
+    border-radius: 5px; padding: 0.5rem 0.85rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem; color: var(--cyan);
+    white-space: nowrap; letter-spacing: 0.04em;
+    position: relative;
+  }
+
+  .flow-block.dsp-block { border-color: rgba(26,111,255,0.4); color: #6ea8ff; background: rgba(26,111,255,0.08); }
+  .flow-block.laser-block { border-color: rgba(232,162,0,0.4); color: var(--amber); background: rgba(232,162,0,0.08); }
+  .flow-block.pd-block { border-color: rgba(29,233,122,0.4); color: var(--green); background: rgba(29,233,122,0.08); }
+
+  .flow-arrow {
+    font-size: 0.7rem; color: var(--text3);
+    padding: 0 6px; flex-shrink: 0;
+  }
+
+  .flow-speed {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.6rem; color: var(--text3);
+    position: absolute; top: -14px; left: 50%;
+    transform: translateX(-50%); white-space: nowrap;
+  }
+
+  /* ── Schedule ── */
+  .schedule-row {
+    display: flex; align-items: center;
+    gap: 1rem; margin-bottom: 0.75rem;
+    font-size: 0.88rem;
+  }
+
+  .sched-phase {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem; color: var(--text2);
+    width: 120px; flex-shrink: 0;
+  }
+
+  .sched-bar-track {
+    flex: 1; height: 8px; background: rgba(255,255,255,0.04);
+    border-radius: 4px; overflow: hidden;
+  }
+
+  .sched-bar-fill {
+    height: 100%; border-radius: 4px;
+    transition: width 1.4s cubic-bezier(0.4, 0, 0.2, 1);
+    width: 0%;
+  }
+
+  .sched-done { background: linear-gradient(90deg, #0d6e56, var(--teal)); }
+  .sched-active { background: linear-gradient(90deg, #1155cc, var(--blue)); animation: pulse-bar 2s ease-in-out infinite; }
+  .sched-planned { background: linear-gradient(90deg, #2d2d4a, #3d3d6a); }
+
+  @keyframes pulse-bar {
+    0%, 100% { opacity: 0.9; }
+    50% { opacity: 0.6; }
+  }
+
+  .sched-status {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.63rem; padding: 2px 8px; border-radius: 3px;
+    width: 80px; text-align: center; flex-shrink: 0;
+  }
+
+  .s-done { color: var(--green); background: rgba(29,233,122,0.1); border: 1px solid rgba(29,233,122,0.25); }
+  .s-active { color: #6ea8ff; background: rgba(26,111,255,0.1); border: 1px solid rgba(26,111,255,0.25); }
+  .s-planned { color: var(--text3); background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); }
+
+  /* ── Divider ── */
+  .section-divider {
+    height: 1px; background: linear-gradient(90deg, transparent, var(--border), transparent);
+    max-width: 1200px; margin: 0 auto;
+    position: relative; z-index: 1;
+  }
+
+  /* ── Scrollbar ── */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--cyan); }
+
+  /* ── Animations ── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .reveal {
+    opacity: 0; transform: translateY(24px);
+    transition: opacity 0.7s ease, transform 0.7s ease;
+  }
+  .reveal.visible { opacity: 1; transform: translateY(0); }
+  .reveal-d1 { transition-delay: 0.1s; }
+  .reveal-d2 { transition-delay: 0.2s; }
+  .reveal-d3 { transition-delay: 0.3s; }
+  .reveal-d4 { transition-delay: 0.4s; }
+
+  /* ── Footer ── */
+  footer {
+    position: relative; z-index: 1;
+    border-top: 1px solid var(--border);
+    padding: 2rem;
+    display: flex; justify-content: space-between;
+    align-items: center; flex-wrap: gap;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.68rem; color: var(--text3);
+  }
+
+  /* ── Ticker ── */
+  .ticker-wrap {
+    background: rgba(0,210,230,0.04);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    padding: 6px 0; overflow: hidden;
+    position: relative; z-index: 1;
+  }
+
+  .ticker {
+    display: flex; animation: scroll-left 28s linear infinite;
+    width: max-content;
+  }
+
+  .ticker-item {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65rem; color: var(--text3);
+    padding: 0 2rem; letter-spacing: 0.08em;
+    white-space: nowrap;
+  }
+
+  .ticker-item .hi { color: var(--cyan); }
+
+  @keyframes scroll-left {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+  }
+
+  /* ─ Misc ─ */
+  .gap-top { margin-top: 2rem; }
+  .tag-row { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.75rem; }
+  .tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65rem; padding: 3px 10px; border-radius: 3px;
+    letter-spacing: 0.04em;
+  }
+  .tag-blue { color: #6ea8ff; background: rgba(26,111,255,0.1); border: 1px solid rgba(26,111,255,0.2); }
+  .tag-teal { color: var(--teal); background: rgba(0,180,156,0.1); border: 1px solid rgba(0,180,156,0.2); }
+  .tag-amber { color: var(--amber); background: rgba(232,162,0,0.1); border: 1px solid rgba(232,162,0,0.2); }
+
+  .progress-ring-container {
+    display: flex; gap: 1.5rem; flex-wrap: wrap;
+    margin-top: 1rem;
+  }
+
+  .ring-item { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+
+  .ring-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.62rem; color: var(--text3);
+    text-transform: uppercase; letter-spacing: 0.08em;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<canvas id="bg-canvas"></canvas>
+
+<!-- Navigation -->
+<nav>
+  <div class="nav-logo">1.6T OSFP SR8</div>
+  <ul>
+    <li><a href="#overview">Overview</a></li>
+    <li><a href="#rf-sim">RF Sim</a></li>
+    <li><a href="#pcb">PCB</a></li>
+    <li><a href="#power">Power</a></li>
+    <li><a href="#optical">Optical</a></li>
+    <li><a href="#cmis">CMIS</a></li>
+    <li><a href="#firmware">Firmware</a></li>
+    <li><a href="#i2c">I2C/FW</a></li>
+    <li><a href="#schedule">Schedule</a></li>
+  </ul>
+  <span class="nav-badge">CONFIDENTIAL</span>
+</nav>
+
+<!-- Ticker -->
+<div class="ticker-wrap" style="margin-top:56px;">
+  <div class="ticker">
+    <span class="ticker-item">● DATA RATE: <span class="hi">1.6 Tbps</span></span>
+    <span class="ticker-item">● LANES: <span class="hi">8 × 200G</span></span>
+    <span class="ticker-item">● FORM FACTOR: <span class="hi">OSFP</span></span>
+    <span class="ticker-item">● REACH: <span class="hi">SR8 / 100m MMF</span></span>
+    <span class="ticker-item">● DSP: <span class="hi">Marvell NOVA2 5nm</span></span>
+    <span class="ticker-item">● POWER: <span class="hi">&lt;32W</span></span>
+    <span class="ticker-item">● OPTICS: <span class="hi">Dual MPO-12</span></span>
+    <span class="ticker-item">● VCSEL: <span class="hi">Coherent</span></span>
+    <span class="ticker-item">● PCB: <span class="hi">16-Layer Doosan DS-8502SQN</span></span>
+    <span class="ticker-item">● MCU: <span class="hi">STM32H563 (250MHz Cortex-M33)</span></span>
+    <span class="ticker-item">● PROTOCOL: <span class="hi">CMIS 5.2</span></span>
+    <span class="ticker-item">● SI RESULT: <span class="hi">ALL PASS</span></span>
+    <span class="ticker-item">● DATA RATE: <span class="hi">1.6 Tbps</span></span>
+    <span class="ticker-item">● LANES: <span class="hi">8 × 200G</span></span>
+    <span class="ticker-item">● FORM FACTOR: <span class="hi">OSFP</span></span>
+    <span class="ticker-item">● REACH: <span class="hi">SR8 / 100m MMF</span></span>
+    <span class="ticker-item">● DSP: <span class="hi">Marvell NOVA2 5nm</span></span>
+    <span class="ticker-item">● POWER: <span class="hi">&lt;32W</span></span>
+    <span class="ticker-item">● OPTICS: <span class="hi">Dual MPO-12</span></span>
+    <span class="ticker-item">● VCSEL: <span class="hi">Coherent</span></span>
+  </div>
+</div>
+
+<!-- Hero -->
+<section id="hero" style="position:relative;">
+  <!-- Hero background photo -->
+  <div style="position:absolute; inset:0; overflow:hidden; z-index:0; pointer-events:none;">
+    <img src="https://www.multicominc.com/wp-content/uploads/2023/09/800G-OSFP-2xDR4-1310nm-500m-Dual-MPO-12-Optical-Transceiver.jpg"
+         alt=""
+         style="position:absolute; right:-5%; top:50%; transform:translateY(-50%);
+                width:55%; opacity:0.08; filter:blur(2px) saturate(0.5);">
+  </div>
+  <div class="hero-tag" style="position:relative; z-index:1;">Design Proposal · February 2025</div>
+  <h1 class="hero-title" style="position:relative; z-index:1;">
+    <span class="accent">1.6T</span> OSFP<br>
+    <span class="thin">SR8 Design</span><br>
+    Proposal
+  </h1>
+  <p class="hero-sub">
+    Next-generation 1.6 Terabit optical transceiver module. 8 lanes × 200G per lane, delivering full OSFP form factor integration with dual MPO-12 breakout support for 2×800G applications.
+  </p>
+  <div class="hero-stats">
+    <div class="stat-item">
+      <span class="stat-num">1.6T</span>
+      <span class="stat-label">Total Bandwidth</span>
+    </div>
+    <div class="stat-divider"></div>
+    <div class="stat-item">
+      <span class="stat-num">8×200G</span>
+      <span class="stat-label">Lane Architecture</span>
+    </div>
+    <div class="stat-divider"></div>
+    <div class="stat-item">
+      <span class="stat-num">&lt;32W</span>
+      <span class="stat-label">Power Budget</span>
+    </div>
+    <div class="stat-divider"></div>
+    <div class="stat-item">
+      <span class="stat-num">5nm</span>
+      <span class="stat-label">DSP Process Node</span>
+    </div>
+  </div>
+  <div class="hero-cta">
+    <a href="#overview" class="btn btn-primary">View Design</a>
+    <a href="#rf-sim" class="btn btn-outline">SI Results</a>
+  </div>
+</section>
+
+<!-- Hero Photo Strip -->
+<div style="position:relative; z-index:1; max-width:1200px; margin:0 auto; padding:0 2rem 2rem;">
+  <div style="display:grid; grid-template-columns:2fr 1fr 1fr; gap:1rem;">
+    <div style="border-radius:8px; overflow:hidden; border:1px solid var(--border); position:relative; min-height:220px; background:#0a1525;">
+      <img src="https://www.multicominc.com/wp-content/uploads/2023/09/800G-OSFP-2xDR4-1310nm-500m-Dual-MPO-12-Optical-Transceiver.jpg"
+           alt="800G OSFP Dual MPO-12 Transceiver Module"
+           style="width:100%; height:100%; object-fit:cover; opacity:0.85; display:block; min-height:220px;">
+      <div style="position:absolute; bottom:0; left:0; right:0; padding:0.75rem 1rem;
+                  background:linear-gradient(transparent, rgba(5,13,26,0.95));">
+        <div style="font-family:'Rajdhani',sans-serif; font-size:1rem; font-weight:600; color:#f0fbff;">OSFP Dual MPO-12 Module</div>
+        <div style="font-family:'JetBrains Mono',monospace; font-size:0.65rem; color:var(--teal);">800G SR8 · 100m MMF Reference</div>
+      </div>
+    </div>
+    <div style="border-radius:8px; overflow:hidden; border:1px solid var(--border); position:relative; background:#0a1525;">
+      <img src="https://www.multicominc.com/wp-content/uploads/2023/09/800G-OSFP-2xDR4-1310nm-500m-Dual-MPO-12-Optical-Transceiver.jpg"
+           alt="OSFP module top view"
+           style="width:100%; height:100%; object-fit:cover; object-position:right center; opacity:0.75; display:block; min-height:220px; filter:hue-rotate(180deg) saturate(0.7);">
+      <div style="position:absolute; bottom:0; left:0; right:0; padding:0.65rem 0.85rem;
+                  background:linear-gradient(transparent, rgba(5,13,26,0.95));">
+        <div style="font-family:'Rajdhani',sans-serif; font-size:0.9rem; font-weight:600; color:#f0fbff;">Form Factor</div>
+        <div style="font-family:'JetBrains Mono',monospace; font-size:0.62rem; color:var(--cyan);">OSFP · 107.8mm × 22.58mm</div>
+      </div>
+    </div>
+    <div style="border-radius:8px; overflow:hidden; border:1px solid var(--border); position:relative; background:#0a1525;">
+      <img src="https://images.router-switch.com/media/catalog/product/cache/1/image/9df78eab33525d08d6e5fb8d27136e95/8/0/800g-osfp-2xdr4-1310nm-500m-dual-mpo-12-optical-transceiver_3.jpg"
+           alt="MPO-12 dual connector"
+           onerror="this.onerror=null; this.src='https://www.fs.com/images/ckfinder/ftp_images/news/2021/MTP-MPO-Fiber-Optic-Cable.jpg'"
+           style="width:100%; height:100%; object-fit:cover; opacity:0.8; display:block; min-height:220px; filter:saturate(0.8);">
+      <div style="position:absolute; bottom:0; left:0; right:0; padding:0.65rem 0.85rem;
+                  background:linear-gradient(transparent, rgba(5,13,26,0.95));">
+        <div style="font-family:'Rajdhani',sans-serif; font-size:0.9rem; font-weight:600; color:#f0fbff;">Dual MPO-12</div>
+        <div style="font-family:'JetBrains Mono',monospace; font-size:0.62rem; color:var(--cyan);">2 × 800G Breakout</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Animated Module Architecture Diagram -->
+<div style="position:relative; z-index:1; max-width:1200px; margin:0 auto; padding:0 2rem 4rem;">
+  <div style="font-family:'JetBrains Mono',monospace; font-size:0.65rem; color:var(--text3); letter-spacing:0.12em; text-transform:uppercase; margin-bottom:1rem; display:flex; align-items:center; gap:0.5rem;">
+    <span style="display:inline-block; width:24px; height:1px; background:var(--text3);"></span>
+    Module Block Diagram — OSFP 1.6T SR8
+  </div>
+  <div style="background:var(--panel); border:1px solid var(--border); border-radius:8px; padding:1.5rem; overflow-x:auto;">
+    <svg id="module-svg" viewBox="0 0 960 240" xmlns="http://www.w3.org/2000/svg" style="width:100%; min-width:700px; display:block;">
+      <defs>
+        <marker id="arr2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+          <path d="M2 1L8 5L2 9" fill="none" stroke="#00d2e6" stroke-width="1.5" stroke-linecap="round"/>
+        </marker>
+        <marker id="arr-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+          <path d="M2 1L8 5L2 9" fill="none" stroke="#e8a200" stroke-width="1.5" stroke-linecap="round"/>
+        </marker>
+        <marker id="arr-green" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+          <path d="M2 1L8 5L2 9" fill="none" stroke="#1de97a" stroke-width="1.5" stroke-linecap="round"/>
+        </marker>
+      </defs>
+
+      <!-- Host Interface -->
+      <rect x="10" y="20" width="80" height="200" rx="5" fill="rgba(26,111,255,0.1)" stroke="rgba(26,111,255,0.35)" stroke-width="0.8"/>
+      <text x="50" y="125" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="#6ea8ff" transform="rotate(-90,50,125)">HOST INTERFACE</text>
+      <text x="50" y="138" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="rgba(110,168,255,0.6)" transform="rotate(-90,50,138)">OSFP Gold Finger</text>
+
+      <!-- DSP Block -->
+      <rect x="120" y="30" width="120" height="85" rx="5" fill="rgba(26,111,255,0.12)" stroke="rgba(26,111,255,0.4)" stroke-width="0.8"/>
+      <text x="180" y="62" text-anchor="middle" font-family="'Rajdhani',sans-serif" font-size="12" fill="#6ea8ff" font-weight="600">DSP × 2</text>
+      <text x="180" y="76" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="rgba(110,168,255,0.7)">Marvell NOVA2</text>
+      <text x="180" y="89" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="rgba(110,168,255,0.55)">5nm FlipChip</text>
+      <text x="180" y="102" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="rgba(110,168,255,0.55)">8×200G PAM4</text>
+
+      <!-- MCU -->
+      <rect x="120" y="135" width="120" height="65" rx="5" fill="rgba(0,210,230,0.07)" stroke="rgba(0,210,230,0.25)" stroke-width="0.8"/>
+      <text x="180" y="161" text-anchor="middle" font-family="'Rajdhani',sans-serif" font-size="11" fill="#00d2e6" font-weight="600">MCU</text>
+      <text x="180" y="174" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="rgba(0,210,230,0.6)">STM32H563MI</text>
+      <text x="180" y="186" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="rgba(0,210,230,0.45)">250MHz M33</text>
+
+      <!-- LDD -->
+      <rect x="300" y="30" width="90" height="85" rx="5" fill="rgba(232,162,0,0.08)" stroke="rgba(232,162,0,0.3)" stroke-width="0.8"/>
+      <text x="345" y="64" text-anchor="middle" font-family="'Rajdhani',sans-serif" font-size="12" fill="#e8a200" font-weight="600">LDD × 2</text>
+      <text x="345" y="78" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="rgba(232,162,0,0.65)">MACOM</text>
+      <text x="345" y="90" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="rgba(232,162,0,0.5)">MALD-40435</text>
+      <text x="345" y="103" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="rgba(232,162,0,0.45)">Quad WB</text>
+
+      <!-- TIA -->
+      <rect x="300" y="135" width="90" height="65" rx="5" fill="rgba(29,233,122,0.07)" stroke="rgba(29,233,122,0.25)" stroke-width="0.8"/>
+      <text x="345" y="162" text-anchor="middle" font-family="'Rajdhani',sans-serif" font-size="12" fill="#1de97a" font-weight="600">TIA × 2</text>
+      <text x="345" y="176" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="rgba(29,233,122,0.6)">MACOM</text>
+      <text x="345" y="188" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="rgba(29,233,122,0.45)">MATA-40734</text>
+
+      <!-- VCSEL -->
+      <rect x="460" y="30" width="90" height="85" rx="5" fill="rgba(232,162,0,0.08)" stroke="rgba(232,162,0,0.3)" stroke-width="0.8"/>
+      <text x="505" y="62" text-anchor="middle" font-family="'Rajdhani',sans-serif" font-size="12" fill="#e8a200" font-weight="600">VCSEL × 2</text>
+      <text x="505" y="76" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="rgba(232,162,0,0.65)">Coherent</text>
+      <text x="505" y="89" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="rgba(232,162,0,0.5)">Quad Wirebond</text>
+      <text x="505" y="102" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="rgba(232,162,0,0.45)">200G/lane</text>
+
+      <!-- PD -->
+      <rect x="460" y="135" width="90" height="65" rx="5" fill="rgba(29,233,122,0.07)" stroke="rgba(29,233,122,0.25)" stroke-width="0.8"/>
+      <text x="505" y="162" text-anchor="middle" font-family="'Rajdhani',sans-serif" font-size="12" fill="#1de97a" font-weight="600">PD × 2</text>
+      <text x="505" y="176" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="rgba(29,233,122,0.6)">Coherent</text>
+      <text x="505" y="188" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="rgba(29,233,122,0.45)">Quad Wirebond</text>
+
+      <!-- Lens / COB -->
+      <rect x="620" y="20" width="80" height="200" rx="5" fill="rgba(0,210,230,0.06)" stroke="rgba(0,210,230,0.2)" stroke-width="0.8"/>
+      <text x="660" y="122" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="rgba(0,210,230,0.6)" transform="rotate(-90,660,122)">COB LENS ASSEMBLY</text>
+      <text x="660" y="136" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="rgba(0,210,230,0.35)" transform="rotate(-90,660,136)">400G Angled Design</text>
+
+      <!-- MPO -->
+      <rect x="760" y="60" width="70" height="120" rx="5" fill="rgba(0,180,156,0.1)" stroke="rgba(0,180,156,0.35)" stroke-width="0.8"/>
+      <text x="795" y="118" text-anchor="middle" font-family="'Rajdhani',sans-serif" font-size="11" fill="#00b49c" font-weight="600" transform="rotate(-90,795,118)">Dual MPO-12</text>
+      <text x="795" y="132" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="8" fill="rgba(0,180,156,0.55)" transform="rotate(-90,795,132)">2 × 800G SR8</text>
+
+      <!-- Fiber -->
+      <rect x="875" y="80" width="70" height="80" rx="5" fill="rgba(0,180,156,0.07)" stroke="rgba(0,180,156,0.2)" stroke-width="0.8"/>
+      <text x="910" y="125" text-anchor="middle" font-family="'Rajdhani',sans-serif" font-size="11" fill="rgba(0,180,156,0.8)" font-weight="600" transform="rotate(-90,910,125)">Fiber</text>
+
+      <!-- DC-DC label -->
+      <rect x="120" y="215" width="290" height="18" rx="3" fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.07)" stroke-width="0.5"/>
+      <text x="265" y="228" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="7.5" fill="rgba(255,255,255,0.3)">DC-DC (MAX77812)  ·  PCB: 16L Doosan DS-8502SQN  ·  Total Power &lt; 32W</text>
+
+      <!-- ── Arrows: TX path (top) ── -->
+      <!-- Host → DSP -->
+      <line x1="90" y1="65" x2="118" y2="65" stroke="#6ea8ff" stroke-width="1" marker-end="url(#arr2)" opacity="0.7"/>
+      <!-- DSP → LDD -->
+      <line x1="240" y1="72" x2="298" y2="72" stroke="#e8a200" stroke-width="1" marker-end="url(#arr-amber)" opacity="0.7"/>
+      <!-- LDD → VCSEL -->
+      <line x1="390" y1="72" x2="458" y2="72" stroke="#e8a200" stroke-width="1" marker-end="url(#arr-amber)" opacity="0.7"/>
+      <!-- VCSEL → Lens -->
+      <line x1="550" y1="72" x2="618" y2="72" stroke="#e8a200" stroke-width="1.2" marker-end="url(#arr-amber)" opacity="0.8"/>
+      <!-- Lens → MPO -->
+      <line x1="700" y1="80" x2="758" y2="100" stroke="#00b49c" stroke-width="1.2" marker-end="url(#arr2)" opacity="0.7"/>
+      <!-- MPO → Fiber -->
+      <line x1="830" y1="110" x2="873" y2="115" stroke="#00b49c" stroke-width="1.2" marker-end="url(#arr2)" opacity="0.7"/>
+
+      <!-- ── Arrows: RX path (bottom) ── -->
+      <!-- Fiber → MPO -->
+      <line x1="873" y1="135" x2="831" y2="148" stroke="#1de97a" stroke-width="1" marker-end="url(#arr-green)" opacity="0.6"/>
+      <!-- MPO → Lens -->
+      <line x1="759" y1="148" x2="701" y2="168" stroke="#1de97a" stroke-width="1" marker-end="url(#arr-green)" opacity="0.6"/>
+      <!-- Lens → PD -->
+      <line x1="619" y1="168" x2="551" y2="168" stroke="#1de97a" stroke-width="1" marker-end="url(#arr-green)" opacity="0.7"/>
+      <!-- PD → TIA -->
+      <line x1="459" y1="168" x2="391" y2="168" stroke="#1de97a" stroke-width="1" marker-end="url(#arr-green)" opacity="0.7"/>
+      <!-- TIA → DSP -->
+      <line x1="299" y1="168" x2="241" y2="100" stroke="#00d2e6" stroke-width="1" marker-end="url(#arr2)" opacity="0.65"/>
+      <!-- DSP → Host (RX) -->
+      <line x1="120" y1="90" x2="91" y2="90" stroke="#6ea8ff" stroke-width="1" marker-end="url(#arr2)" opacity="0.5" stroke-dasharray="3,2"/>
+
+      <!-- ── Animated pulses ── -->
+      <circle class="pulse-tx" r="4" fill="#e8a200" opacity="0">
+        <animateMotion dur="2.4s" repeatCount="indefinite" begin="0.2s">
+          <mpath href="#tx-path"/>
+        </animateMotion>
+        <animate attributeName="opacity" values="0;0.9;0.9;0" dur="2.4s" repeatCount="indefinite" begin="0.2s"/>
+      </circle>
+      <circle class="pulse-rx" r="4" fill="#1de97a" opacity="0">
+        <animateMotion dur="2.8s" repeatCount="indefinite" begin="1.4s">
+          <mpath href="#rx-path"/>
+        </animateMotion>
+        <animate attributeName="opacity" values="0;0.9;0.9;0" dur="2.8s" repeatCount="indefinite" begin="1.4s"/>
+      </circle>
+
+      <path id="tx-path" d="M90,65 L180,72 L345,72 L505,72 L660,72 L795,100" fill="none" stroke="none"/>
+      <path id="rx-path" d="M873,135 L795,148 L660,168 L505,168 L345,168 L240,100 L120,90" fill="none" stroke="none"/>
+
+      <!-- Legend -->
+      <line x1="120" y1="228" x2="140" y2="228" stroke="#e8a200" stroke-width="1.5"/>
+      <text x="144" y="232" font-family="'JetBrains Mono',monospace" font-size="8" fill="rgba(232,162,0,0.7)">TX path</text>
+      <line x1="200" y1="228" x2="220" y2="228" stroke="#1de97a" stroke-width="1.5"/>
+      <text x="224" y="232" font-family="'JetBrains Mono',monospace" font-size="8" fill="rgba(29,233,122,0.7)">RX path</text>
+    </svg>
+  </div>
+</div>
+
+<div class="section-divider"></div>
+
+<!-- Design Overview -->
+<section id="overview">
+  <div class="section-label reveal">Design Overview</div>
+  <h2 class="section-title reveal reveal-d1">Product Highlights &amp; Key ICs</h2>
+  <p class="section-desc reveal reveal-d2">
+    The 1.6T OSFP SR8 leverages a COB assembly design, 400G angled lens technology with optimized reflection and insertion loss balance, and full automatic assembly &amp; test capability.
+  </p>
+
+  <div class="grid-2">
+    <!-- Product Highlights -->
+    <div class="card reveal reveal-d1">
+      <div class="card-title">Product Highlights</div>
+      <ul class="hl-list">
+        <li>200G per lane Electronic/Optical signal processing</li>
+        <li>Power consumption &lt;32W total module budget</li>
+        <li>Supports Dual MPO-12 breakout (2×800G) application</li>
+        <li>Mature COB design with optimized thermal management</li>
+        <li>400G angled lens design — balanced reflection &amp; insertion loss</li>
+        <li>Automatic assembly and testing workflow</li>
+        <li>Supports both AOC and MPO pluggable configurations</li>
+      </ul>
+      <div class="tag-row">
+        <span class="tag tag-teal">COB Design</span>
+        <span class="tag tag-blue">OSFP Form Factor</span>
+        <span class="tag tag-amber">Dual MPO-12</span>
+      </div>
+    </div>
+
+    <!-- Signal Flow -->
+    <div class="card reveal reveal-d2">
+      <div class="card-title">Optical Signal Architecture</div>
+      <div style="font-family:'JetBrains Mono',monospace; font-size:0.68rem; color:var(--text3); margin-bottom:1rem;">TX PATH ── HOST → DSP → LDD → VCSEL → Fiber</div>
+      <div class="flow-row">
+        <div class="flow-block dsp-block">Host GF</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-block dsp-block">Marvell NOVA2 DSP</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-block">MACOM LDD</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-block laser-block">Coherent VCSEL</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-block laser-block">MPO-12</div>
+      </div>
+      <div style="font-family:'JetBrains Mono',monospace; font-size:0.68rem; color:var(--text3); margin:1rem 0 0.6rem;">RX PATH ── Fiber → PD → TIA → DSP → HOST</div>
+      <div class="flow-row">
+        <div class="flow-block laser-block">MPO-12</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-block pd-block">Coherent PD</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-block">MACOM TIA</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-block dsp-block">Marvell NOVA2 DSP</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-block dsp-block">Host GF</div>
+      </div>
+      <div style="margin-top:1.2rem; display:flex; gap:0.5rem; flex-wrap:wrap;">
+        <span style="font-family:'JetBrains Mono',monospace; font-size:0.65rem; color:var(--text3);">Quad VCSEL ×2</span>
+        <span style="color:var(--text3); font-size:0.65rem;">·</span>
+        <span style="font-family:'JetBrains Mono',monospace; font-size:0.65rem; color:var(--text3);">Quad PD ×2</span>
+        <span style="color:var(--text3); font-size:0.65rem;">·</span>
+        <span style="font-family:'JetBrains Mono',monospace; font-size:0.65rem; color:var(--text3);">Quad TIA ×2</span>
+        <span style="color:var(--text3); font-size:0.65rem;">·</span>
+        <span style="font-family:'JetBrains Mono',monospace; font-size:0.65rem; color:var(--text3);">Quad LDD ×2</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Key ICs -->
+  <div class="card gap-top reveal reveal-d3">
+    <div class="card-title">Key IC Component Selection</div>
+    <table class="ic-table">
+      <thead>
+        <tr>
+          <th>Function</th>
+          <th>Vendor</th>
+          <th>Part Number</th>
+          <th>Package</th>
+          <th>Note</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>DSP</td>
+          <td>Marvell</td>
+          <td><span class="chip-tag">NOVA2</span></td>
+          <td>Flip chip</td>
+          <td style="color:var(--text2);font-size:0.82rem;">5nm process, dual DSP × 2</td>
+        </tr>
+        <tr>
+          <td>TIA</td>
+          <td>MACOM</td>
+          <td><span class="chip-tag">MATA-40734</span></td>
+          <td>Wirebond</td>
+          <td style="color:var(--text2);font-size:0.82rem;">3.54×1.639mm, Quad ×2</td>
+        </tr>
+        <tr>
+          <td>LDD</td>
+          <td>MACOM</td>
+          <td><span class="chip-tag">MALD-40435</span></td>
+          <td>Wirebond</td>
+          <td style="color:var(--text2);font-size:0.82rem;">2.9×2.014mm, Quad ×2</td>
+        </tr>
+        <tr>
+          <td>VCSEL</td>
+          <td>Coherent</td>
+          <td><span class="chip-tag">TBD</span></td>
+          <td>Wirebond</td>
+          <td style="color:var(--text2);font-size:0.82rem;">Quad ×2 (TX)</td>
+        </tr>
+        <tr>
+          <td>PD</td>
+          <td>Coherent</td>
+          <td><span class="chip-tag">TBD</span></td>
+          <td>Wirebond</td>
+          <td style="color:var(--text2);font-size:0.82rem;">Quad ×2 (RX)</td>
+        </tr>
+        <tr>
+          <td>MCU</td>
+          <td>ST</td>
+          <td><span class="chip-tag">STM32H563MI</span></td>
+          <td>WLCSP80</td>
+          <td style="color:var(--text2);font-size:0.82rem;">250MHz Cortex-M33, 3.5×3.3mm</td>
+        </tr>
+        <tr>
+          <td>EEPROM</td>
+          <td>ST</td>
+          <td><span class="chip-tag">M24C16</span></td>
+          <td>SOT-23</td>
+          <td style="color:var(--text2);font-size:0.82rem;">1.7×1.4mm, no risk</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- RF Simulation -->
+<section id="rf-sim">
+  <div class="section-label reveal">Signal Integrity</div>
+  <h2 class="section-title reveal reveal-d1">RF SI Simulation Results</h2>
+  <p class="section-desc reveal reveal-d2">
+    All host-side and line-side signal paths verified against IEEE 802.ck / 802.3dJ specifications. Return loss, insertion loss, crosstalk, and TDR all within margin.
+  </p>
+
+  <!-- SI Photo Banner -->
+  <div class="reveal reveal-d2" style="border-radius:8px; overflow:hidden; border:1px solid var(--border); position:relative; margin-bottom:2rem; height:180px; background:#08111f;">
+    <img src="https://www.raypcb.com/wp-content/uploads/2021/09/Signal-and-Power-Integrity-Fundamentals-on-High-Speed-1.jpg"
+         alt="High speed PCB signal integrity"
+         style="width:100%; height:100%; object-fit:cover; opacity:0.45; filter:saturate(0.6) hue-rotate(160deg);">
+    <div style="position:absolute; inset:0; display:flex; align-items:center; padding:2rem;">
+      <div>
+        <div style="font-family:'Rajdhani',sans-serif; font-size:1.6rem; font-weight:700; color:var(--head);">All 8 Channels — SI Verified</div>
+        <div style="font-family:'JetBrains Mono',monospace; font-size:0.72rem; color:var(--teal); margin-top:4px;">IEEE 802.ck / 802.3dJ · RL &lt; −16dB · IL &lt; −2.5dB · CT &lt; −40dB · TDR 90~110Ω</div>
+      </div>
+      <div style="margin-left:auto; display:flex; gap:1rem;">
+        <div style="text-align:center;">
+          <div style="font-family:'Rajdhani',sans-serif; font-size:2rem; font-weight:700; color:var(--green);">8</div>
+          <div style="font-family:'JetBrains Mono',monospace; font-size:0.6rem; color:var(--text3);">Paths</div>
+        </div>
+        <div style="text-align:center;">
+          <div style="font-family:'Rajdhani',sans-serif; font-size:2rem; font-weight:700; color:var(--green);">100%</div>
+          <div style="font-family:'JetBrains Mono',monospace; font-size:0.6rem; color:var(--text3);">Pass Rate</div>
+        </div>
+        <div style="text-align:center;">
+          <div style="font-family:'Rajdhani',sans-serif; font-size:2rem; font-weight:700; color:var(--cyan);">85GHz</div>
+          <div style="font-family:'JetBrains Mono',monospace; font-size:0.6rem; color:var(--text3);">BW Verified</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sim-grid">
+    <!-- HTX 1357 -->
+    <div class="sim-card reveal reveal-d1">
+      <div class="sim-header">
+        <span class="sim-name">HTX 1/3/5/7</span>
+        <span class="pass-badge">✓ PASS</span>
+      </div>
+      <div class="spec-row">
+        <div class="spec-row-header">
+          <span class="spec-name">Return Loss @56GHz</span>
+          <span class="spec-val">−17.7 dB</span>
+        </div>
+        <div class="bar-track"><div class="bar-fill pass" data-width="88"></div></div>
+      </div>
+      <div class="spec-row">
+        <div class="spec-row-header">
+          <span class="spec-name">Insertion Loss @56GHz</span>
+          <span class="spec-val">−2.20 dB</span>
+        </div>
+        <div class="bar-track"><div class="bar-fill" data-width="72"></div></div>
+      </div>
+      <div class="spec-row">
+        <div class="spec-row-header">
+          <span class="spec-name">Crosstalk @85GHz</span>
+          <span class="spec-val">−41.1 dB</span>
+        </div>
+        <div class="bar-track"><div class="bar-fill pass" data-width="82"></div></div>
+      </div>
+      <div class="spec-row">
+        <div class="spec-row-header">
+          <span class="spec-name">TDR</span>
+          <span class="spec-val">94.3~105.3 Ω</span>
+        </div>
+        <div class="bar-track"><div class="bar-fill pass" data-width="94"></div></div>
+      </div>
+    </div>
+
+    <!-- HTX 2468 -->
+    <div class="sim-card reveal reveal-d2">
+      <div class="sim-header">
+        <span class="sim-name">HTX 2/4/6/8</span>
+        <span class="pass-badge">✓ PASS</span>
+      </div>
+      <div class="spec-row">
+        <div class="spec-row-header">
+          <span class="spec-name">Return Loss @56GHz</span>
+          <span class="spec-val">−16.1 dB</span>
+        </div>
+        <div class="bar-track"><div class="bar-fill pass" data-width="80"></div></div>
+      </div>
+      <div class="spec-row">
+        <div class="spec-row-header">
+          <span class="spec-name">Insertion Loss @56GHz</span>
+          <span class="spec-val">−2.39 dB</span>
+        </div>
+        <div class="bar-track"><div class="bar-fill" data-width="68"></div></div>
+      </div>
+      <div class="spec-row">
+        <div class="spec-row-header">
+          <span class="spec-name">Crosstalk @85GHz</span>
+          <span class="spec-val">−43.6 dB</span>
+        </div>
+        <div class="bar-track"><div class="bar-fill pass" data-width="85"></div></div>
+      </div>
+      <div class="spec-row">
+        <div class="spec-row-header">
+          <span class="spec-name">TDR</span>
+          <span class="spec-val">94.2~104.9 Ω</span>
+        </div>
+        <div class="bar-track"><div class="bar-fill pass" data-width="92"></div></div>
+      </div>
+    </div>
+
+    <!-- HRX 1357 -->
+    <div class="sim-card reveal reveal-d1">
+      <div class="sim-header">
+        <span class="sim-name">HRX 1/3/5/7</span>
+        <span class="pass-badge">✓ PASS</span>
+      </div>
+      <div class="spec-row">
+        <div class="spec-row-header">
+          <span class="spec-name">Return Loss @56GHz</span>
+          <span class="spec-val">−17.5 dB</span>
+        </div>
+        <div class="bar-track"><div class="bar-fill pass" data-width="86"></div></div>
+      </div>
+      <div class="spec-row">
+        <div class="spec-row-header">
+          <span class="spec-name">Insertion Loss @56GHz</span>
+          <span class="spec-val">−2.27 dB</span>
+        </div>
+        <div class="bar-track"><div class="bar-fill" data-width="70"></div></div>
+      </div>
+      <div class="spec-row">
+        <div class="spec-row-header">
+          <span class="spec-name">Crosstalk @85GHz</span>
+          <span class="spec-val">−40.4 dB</span>
+        </div>
+        <div class="bar-track"><div class="bar-fill pass" data-width="80"></div></div>
+      </div>
+      <div class="spec-row">
+        <div class="spec-row-header">
+          <span class="spec-name">TDR</span>
+          <span class="spec-val">95.3~103.5 Ω</span>
+        </div>
+        <div class="bar-track"><div class="bar-fill pass" data-width="95"></div></div>
+      </div>
+    </div>
+
+    <!-- LTX 1~4 -->
+    <div class="sim-card reveal reveal-d2">
+      <div class="sim-header">
+        <span class="sim-name">LTX 1~4</span>
+        <span class="pass-badge">✓ PASS</span>
+      </div>
+      <div class="spec-row">
+        <div class="spec-row-header">
+          <span class="spec-name">Return Loss @56GHz</span>
+          <span class="spec-val">−17.56 dB</span>
+        </div>
+        <div class="bar-track"><div class="bar-fill pass" data-width="87"></div></div>
+      </div>
+      <div class="spec-row">
+        <div class="spec-row-header">
+          <span class="spec-name">Insertion Loss @56GHz</span>
+          <span class="spec-val">−2.40 dB</span>
+        </div>
+        <div class="bar-track"><div class="bar-fill" data-width="66"></div></div>
+      </div>
+      <div class="spec-row">
+        <div class="spec-row-header">
+          <span class="spec-name">Crosstalk @85GHz</span>
+          <span class="spec-val">−51.04 dB</span>
+        </div>
+        <div class="bar-track"><div class="bar-fill pass" data-width="97"></div></div>
+      </div>
+      <div class="spec-row">
+        <div class="spec-row-header">
+          <span class="spec-name">TDR</span>
+          <span class="spec-val">89.2~93.4 Ω</span>
+        </div>
+        <div class="bar-track"><div class="bar-fill pass" data-width="78"></div></div>
+      </div>
+    </div>
+
+    <!-- LTX 5~8 -->
+    <div class="sim-card reveal reveal-d3">
+      <div class="sim-header">
+        <span class="sim-name">LTX 5~8</span>
+        <span class="pass-badge">✓ PASS</span>
+      </div>
+      <div class="spec-row">
+        <div class="spec-row-header">
+          <span class="spec-name">Return Loss @56GHz</span>
+          <span class="spec-val">−18.05 dB</span>
+        </div>
+        <div class="bar-track"><div class="bar-fill pass" data-width="90"></div></div>
+      </div>
+      <div class="spec-row">
+        <div class="spec-row-header">
+          <span class="spec-name">Insertion Loss @56GHz</span>
+          <span class="spec-val">−1.47 dB</span>
+        </div>
+        <div class="bar-track"><div class="bar-fill" data-width="85"></div></div>
+      </div>
+      <div class="spec-row">
+        <div class="spec-row-header">
+          <span class="spec-name">Crosstalk @85GHz</span>
+          <span class="spec-val">−41.18 dB</span>
+        </div>
+        <div class="bar-track"><div class="bar-fill pass" data-width="82"></div></div>
+      </div>
+      <div class="spec-row">
+        <div class="spec-row-header">
+          <span class="spec-name">TDR</span>
+          <span class="spec-val">86.5~101.7 Ω</span>
+        </div>
+        <div class="bar-track"><div class="bar-fill pass" data-width="87"></div></div>
+      </div>
+    </div>
+
+    <!-- LRX 3~4 -->
+    <div class="sim-card reveal reveal-d4">
+      <div class="sim-header">
+        <span class="sim-name">LRX 3~4</span>
+        <span class="pass-badge">✓ PASS</span>
+      </div>
+      <div class="spec-row">
+        <div class="spec-row-header">
+          <span class="spec-name">Return Loss @56GHz</span>
+          <span class="spec-val">−16.01 dB</span>
+        </div>
+        <div class="bar-track"><div class="bar-fill pass" data-width="80"></div></div>
+      </div>
+      <div class="spec-row">
+        <div class="spec-row-header">
+          <span class="spec-name">Insertion Loss @56GHz</span>
+          <span class="spec-val">−2.52 dB</span>
+        </div>
+        <div class="bar-track"><div class="bar-fill" data-width="64"></div></div>
+      </div>
+      <div class="spec-row">
+        <div class="spec-row-header">
+          <span class="spec-name">Crosstalk @85GHz</span>
+          <span class="spec-val">−48.04 dB</span>
+        </div>
+        <div class="bar-track"><div class="bar-fill pass" data-width="93"></div></div>
+      </div>
+      <div class="spec-row">
+        <div class="spec-row-header">
+          <span class="spec-name">TDR</span>
+          <span class="spec-val">85.97~102.6 Ω</span>
+        </div>
+        <div class="bar-track"><div class="bar-fill pass" data-width="85"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SI Spec Reference -->
+  <div class="card gap-top reveal">
+    <div class="card-title">Specification Reference — IEEE 802.ck / 802.3dJ</div>
+    <div style="display:flex; gap:1.5rem; flex-wrap:wrap; margin-top:0.5rem;">
+      <div>
+        <div style="font-family:'JetBrains Mono',monospace; font-size:0.65rem; color:var(--text3); margin-bottom:4px;">RETURN LOSS</div>
+        <div style="font-size:0.88rem; color:var(--text);">&lt; −16 dB @ BW ≤ 56GHz</div>
+        <div style="font-size:0.88rem; color:var(--text);">&lt; −14 dB @ BW &gt; 56GHz</div>
+      </div>
+      <div style="width:1px; background:var(--border);"></div>
+      <div>
+        <div style="font-family:'JetBrains Mono',monospace; font-size:0.65rem; color:var(--text3); margin-bottom:4px;">INSERTION LOSS</div>
+        <div style="font-size:0.88rem; color:var(--text);">&lt; −1.5 dB @ 56GHz (Host)</div>
+        <div style="font-size:0.88rem; color:var(--text);">&lt; −3.0 dB @ 56GHz (Line)</div>
+      </div>
+      <div style="width:1px; background:var(--border);"></div>
+      <div>
+        <div style="font-family:'JetBrains Mono',monospace; font-size:0.65rem; color:var(--text3); margin-bottom:4px;">CROSSTALK</div>
+        <div style="font-size:0.88rem; color:var(--text);">&lt; −40 dB @ 85GHz</div>
+      </div>
+      <div style="width:1px; background:var(--border);"></div>
+      <div>
+        <div style="font-family:'JetBrains Mono',monospace; font-size:0.65rem; color:var(--text3); margin-bottom:4px;">IMPEDANCE (TDR)</div>
+        <div style="font-size:0.88rem; color:var(--text);">90 ~ 110 Ω (Host)</div>
+        <div style="font-size:0.88rem; color:var(--text);">81 ~ 105 Ω (Line)</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- PCB Stackup -->
+<section id="pcb">
+  <div class="section-label reveal">PCB Design</div>
+  <h2 class="section-title reveal reveal-d1">16-Layer PCB Stackup</h2>
+  <p class="section-desc reveal reveal-d2">
+    Doosan DS-8502SQN MSAP material — selected for low loss, low Dk characteristics. 16-layer architecture for superior high-speed via consistency at layer transitions.
+  </p>
+
+  <!-- PCB photo strip -->
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:2rem;">
+    <div class="reveal reveal-d1" style="border-radius:8px; overflow:hidden; border:1px solid var(--border); height:150px; position:relative; background:#08111f;">
+      <img src="https://www.raypcb.com/wp-content/uploads/2021/09/Signal-and-Power-Integrity-Fundamentals-on-High-Speed-1.jpg"
+           alt="High speed PCB layout"
+           style="width:100%; height:100%; object-fit:cover; opacity:0.5; filter:hue-rotate(120deg) saturate(0.8);">
+      <div style="position:absolute; inset:0; display:flex; align-items:flex-end; padding:0.75rem 1rem; background:linear-gradient(transparent 40%, rgba(5,13,26,0.9));">
+        <div>
+          <div style="font-family:'Rajdhani',sans-serif; font-size:0.95rem; font-weight:600; color:var(--head);">16-Layer MSAP Substrate</div>
+          <div style="font-family:'JetBrains Mono',monospace; font-size:0.62rem; color:var(--teal);">Doosan DS-8502SQN · Dk 3.6 · Df 0.0025</div>
+        </div>
+      </div>
+    </div>
+    <div class="reveal reveal-d2" style="border-radius:8px; overflow:hidden; border:1px solid var(--border); height:150px; position:relative; background:#08111f;">
+      <img src="https://www.fs.com/images/ckfinder/ftp_images/news/2021/MTP-MPO-Fiber-Optic-Cable.jpg"
+           alt="MPO fiber cable"
+           onerror="this.onerror=null; this.style.display='none'"
+           style="width:100%; height:100%; object-fit:cover; opacity:0.55; filter:saturate(0.7);">
+      <div style="position:absolute; inset:0; display:flex; align-items:flex-end; padding:0.75rem 1rem; background:linear-gradient(transparent 40%, rgba(5,13,26,0.9));">
+        <div>
+          <div style="font-family:'Rajdhani',sans-serif; font-size:0.95rem; font-weight:600; color:var(--head);">MPO-12 Fiber Interface</div>
+          <div style="font-family:'JetBrains Mono',monospace; font-size:0.62rem; color:var(--cyan);">Dual MPO-12 · OM4 MMF · 100m Reach</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex; gap:2.5rem; flex-wrap:wrap; align-items:flex-start;">
+    <!-- Visual stackup -->
+    <div class="card reveal reveal-d1" style="flex:0 0 auto; min-width:320px;">
+      <div class="card-title" style="margin-bottom:1.2rem;">Layer Cross-Section</div>
+      <div class="stackup-layers">
+        <div class="pcb-layer"><div class="layer-label">L1</div><div class="layer-bar layer-copper"><span class="layer-name">SIG — 40/46/35μm</span></div></div>
+        <div class="pcb-layer"><div class="layer-label"></div><div class="layer-bar layer-prepreg" style="background:rgba(40,90,60,0.4);"></div></div>
+        <div class="pcb-layer"><div class="layer-label">L2</div><div class="layer-bar layer-gnd"><span class="layer-name">GND</span></div></div>
+        <div class="pcb-layer"><div class="layer-label"></div><div class="layer-bar layer-core" style="background:rgba(50,110,80,0.35);"></div></div>
+        <div class="pcb-layer"><div class="layer-label">L3</div><div class="layer-bar layer-copper"><span class="layer-name">SIG</span></div></div>
+        <div class="pcb-layer"><div class="layer-label"></div><div class="layer-bar layer-prepreg" style="background:rgba(40,90,60,0.3);"></div></div>
+        <div class="pcb-layer"><div class="layer-label">L4</div><div class="layer-bar layer-gnd"><span class="layer-name">GND — 34/60/35μm</span></div></div>
+        <div class="pcb-layer"><div class="layer-label"></div><div class="layer-bar layer-core"></div></div>
+        <div class="pcb-layer"><div class="layer-label">L5</div><div class="layer-bar layer-copper"><span class="layer-name">SIG — 65/90/55μm</span></div></div>
+        <div class="pcb-layer"><div class="layer-label"></div><div class="layer-bar layer-prepreg" style="background:rgba(40,90,60,0.25);height:5px;"></div></div>
+        <div class="pcb-layer"><div class="layer-label" style="font-size:0.55rem; color:var(--text3);">· · · ·</div><div class="layer-bar" style="background:transparent; height:10px;"></div></div>
+        <div class="pcb-layer"><div class="layer-label"></div><div class="layer-bar layer-prepreg" style="height:5px; background:rgba(40,90,60,0.25);"></div></div>
+        <div class="pcb-layer"><div class="layer-label">L10</div><div class="layer-bar layer-pwr"><span class="layer-name">PWR — 50/140/100μm</span></div></div>
+        <div class="pcb-layer"><div class="layer-label"></div><div class="layer-bar layer-core"></div></div>
+        <div class="pcb-layer"><div class="layer-label">L12</div><div class="layer-bar layer-gnd"><span class="layer-name">GND — 65/90/60μm</span></div></div>
+        <div class="pcb-layer"><div class="layer-label"></div><div class="layer-bar layer-prepreg" style="height:5px;"></div></div>
+        <div class="pcb-layer"><div class="layer-label">L16</div><div class="layer-bar layer-copper"><span class="layer-name">SIG</span></div></div>
+      </div>
+    </div>
+
+    <!-- Specs badges -->
+    <div style="flex:1; min-width:260px;">
+      <div class="card reveal reveal-d2" style="margin-bottom:1.25rem;">
+        <div class="card-title">Stackup Specifications</div>
+        <div style="display:flex; flex-wrap:wrap;">
+          <div class="spec-badge">
+            <div>
+              <div class="spec-badge-num">16</div>
+              <div class="spec-badge-label">Layers Total</div>
+            </div>
+          </div>
+          <div class="spec-badge">
+            <div>
+              <div class="spec-badge-num">152μm</div>
+              <div class="spec-badge-label">Core Thickness</div>
+            </div>
+          </div>
+          <div class="spec-badge">
+            <div>
+              <div class="spec-badge-num">39μm</div>
+              <div class="spec-badge-label">PP Thickness</div>
+            </div>
+          </div>
+          <div class="spec-badge">
+            <div>
+              <div class="spec-badge-num">3.6</div>
+              <div class="spec-badge-label">Dielectric Dk</div>
+            </div>
+          </div>
+          <div class="spec-badge">
+            <div>
+              <div class="spec-badge-num">0.0025</div>
+              <div class="spec-badge-label">Loss Tangent</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card reveal reveal-d3">
+        <div class="card-title">Design Rationale</div>
+        <ul class="hl-list" style="font-size:0.87rem;">
+          <li>Doosan DS-8502SQN MSAP substrate — recommended for consistent performance</li>
+          <li>Low Dk and low-loss tangent — ideal for 200G/lane PAM4 channels</li>
+          <li>16-layer count ensures consistent via-to-via alignment at all layer transitions</li>
+          <li>Impedance design: GF 100Ω → GF-CAP 97Ω → CAP-DSP 95Ω (Host)</li>
+          <li>Line-side: DSP Pad 100Ω → DSP-CAP 90Ω → CAP-LDD 86Ω</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- Power Integrity -->
+<section id="power">
+  <div class="section-label reveal">Power Design</div>
+  <h2 class="section-title reveal reveal-d1">Power Integrity &amp; PDN</h2>
+  <p class="section-desc reveal reveal-d2">
+    Full PDN simulation covering all power domains — DCIR current density, voltage drop, and AC impedance all within specification for high-power 1.6T module operation.
+  </p>
+
+  <div class="grid-4 reveal reveal-d2">
+    <div class="pi-item">
+      <div class="pi-label">Power Budget</div>
+      <div class="pi-value">&lt;32W</div>
+      <div class="pi-desc">Total module TDP target</div>
+      <div class="pi-status-pass">✓ On Target</div>
+    </div>
+    <div class="pi-item">
+      <div class="pi-label">DCIR Spec</div>
+      <div class="pi-value">&lt;2.5%</div>
+      <div class="pi-desc">Max voltage drop percentage</div>
+      <div class="pi-status-pass">✓ Pass</div>
+    </div>
+    <div class="pi-item">
+      <div class="pi-label">Current Density</div>
+      <div class="pi-value">&lt;100</div>
+      <div class="pi-desc">A/mm² trace limit</div>
+      <div class="pi-status-pass">✓ Pass</div>
+    </div>
+    <div class="pi-item">
+      <div class="pi-label">PDN Impedance</div>
+      <div class="pi-value">&lt;10MHz</div>
+      <div class="pi-desc">Target impedance window</div>
+      <div class="pi-status-pass">✓ Simulated</div>
+    </div>
+  </div>
+
+  <div class="card gap-top reveal reveal-d3">
+    <div class="card-title">Power Sequence — High Power Mode</div>
+    <div style="margin-top:0.5rem; display:flex; flex-direction:column; gap:0.6rem;">
+      <div class="schedule-row">
+        <div class="sched-phase">P3V3_GF</div>
+        <div class="sched-bar-track"><div class="sched-bar-fill sched-done" data-width="100"></div></div>
+        <span class="sched-status s-done">Step 1</span>
+      </div>
+      <div class="schedule-row">
+        <div class="sched-phase">P0V63_DDVS</div>
+        <div class="sched-bar-track"><div class="sched-bar-fill sched-done" data-width="75"></div></div>
+        <span class="sched-status s-done">Step 2</span>
+      </div>
+      <div class="schedule-row">
+        <div class="sched-phase">MCU Boot</div>
+        <div class="sched-bar-track"><div class="sched-bar-fill sched-done" data-width="60"></div></div>
+        <span class="sched-status s-done">Step 3</span>
+      </div>
+      <div class="schedule-row">
+        <div class="sched-phase">EEPROM Init</div>
+        <div class="sched-bar-track"><div class="sched-bar-fill sched-done" data-width="50"></div></div>
+        <span class="sched-status s-done">Step 4</span>
+      </div>
+      <div class="schedule-row">
+        <div class="sched-phase">DSP Reset</div>
+        <div class="sched-bar-track"><div class="sched-bar-fill sched-done" data-width="40"></div></div>
+        <span class="sched-status s-done">Step 5</span>
+      </div>
+      <div class="schedule-row">
+        <div class="sched-phase">SELF_INIT</div>
+        <div class="sched-bar-track"><div class="sched-bar-fill sched-done" data-width="35"></div></div>
+        <span class="sched-status s-done">Step 6</span>
+      </div>
+      <div class="schedule-row">
+        <div class="sched-phase">FW Download</div>
+        <div class="sched-bar-track"><div class="sched-bar-fill sched-active" data-width="28"></div></div>
+        <span class="sched-status s-active">&lt;5000ms</span>
+      </div>
+    </div>
+    <div style="margin-top:1rem; font-family:'JetBrains Mono',monospace; font-size:0.65rem; color:var(--text3);">
+      Based on Marvell NOVA2 datasheet power sequence specification. MAX77812 PMIC for step-down conversion. Slow start: 400ms ramp.
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- Firmware & MCU -->
+<section id="firmware">
+  <div class="section-label reveal">Firmware Design</div>
+  <h2 class="section-title reveal reveal-d1">Firmware &amp; MCU Architecture</h2>
+  <p class="section-desc reveal reveal-d2">
+    STM32H563MI Cortex-M33 @ 250MHz, implementing full CMIS 5.2 memory map, dual-image flash allocation, and CDB-based firmware upgrade procedure.
+  </p>
+
+  <div class="fw-blocks reveal reveal-d2">
+    <div class="fw-block">
+      <div class="fw-icon">⚙</div>
+      <div class="fw-block-title">MCU Selection</div>
+      <div class="fw-block-text">
+        <span class="mono-tag">STM32H563MI</span> — 250MHz ARM Cortex-M33, 2MB Flash, 640KB SRAM, WLCSP80 3.5×3.3mm.<br><br>
+        Evaluated against STM32L476 (80MHz) and STM32L431 (80MHz) — H563 selected for performance headroom.
+      </div>
+    </div>
+
+    <div class="fw-block">
+      <div class="fw-icon">🔌</div>
+      <div class="fw-block-title">Bus Architecture</div>
+      <div class="fw-block-text">
+        <b style="color:var(--text);">I3C × 1</b> / <b style="color:var(--text);">I2C × 2</b><br>
+        I2C Master 1 (400kHz): TIA, DAC, IDAC, DC-DC<br>
+        I2C Master 2 (1MHz): DSP configuration<br>
+        I2C/I3C Slave (1MHz/12.5MHz): Host interface<br>
+        SPI: MCU ↔ Flash<br><br>
+        Host pins: ModSelL, ResetL, LPMode, IntL, ModPrsL
+      </div>
+    </div>
+
+    <div class="fw-block">
+      <div class="fw-icon">💾</div>
+      <div class="fw-block-title">Flash Allocation</div>
+      <div class="fw-block-text">
+        Dual-image layout with external flash extension.<br><br>
+        Active image + backup image for safe OTA upgrades.<br>
+        CDB (Command Data Block) procedure for firmware download via I2C/I3C.<br><br>
+        <span class="mono-tag">CDB Header + FW payload</span>
+      </div>
+    </div>
+
+    <div class="fw-block">
+      <div class="fw-icon">📋</div>
+      <div class="fw-block-title">CMIS 5.2 Support</div>
+      <div class="fw-block-text">
+        Full CMIS 5.2 memory map implementation.<br><br>
+        Supported pages: Low, 00h–03h, 10h–11h, 13h–14h, 20h–2Fh, A0h–AFh, B0h–BFh, C0h–CFh, D0h–D4h, E0h–EFh, 9Fh<br><br>
+        Aux monitors: TEC current, Laser temperature, per-channel TX/RX power.
+      </div>
+    </div>
+
+    <div class="fw-block">
+      <div class="fw-icon">📡</div>
+      <div class="fw-block-title">Module Monitoring</div>
+      <div class="fw-block-text">
+        8× TX Optical Power<br>
+        8× RX Optical Power<br>
+        8× TX Bias Current<br>
+        Module Temperature<br><br>
+        <span class="mono-tag">ADC × 16 channels</span> — all VDD pins 0–3.6V max
+      </div>
+    </div>
+
+    <div class="fw-block">
+      <div class="fw-icon">🔄</div>
+      <div class="fw-block-title">DSP Bring-Up Sequence</div>
+      <div class="fw-block-text">
+        1. VCC ramp: 0.6V → 0.94V → 1.2V → 1.8V<br>
+        2. SELF_INIT (High) — pull-up default<br>
+        3. MCU releases DSP Reset1 (High)<br>
+        4. DSP auto-loads FW from Flash<br>
+        5. MCU configures DSP via I2C @ 1MHz<br><br>
+        Based on NOVA2 datasheet power sequence. ✓ Pass.
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- Schedule -->
+<section id="schedule">
+  <div class="section-label reveal">Project Timeline</div>
+  <h2 class="section-title reveal reveal-d1">Development Schedule — V1.0</h2>
+  <p class="section-desc reveal reveal-d2">
+    Marvell NOVA2 V1.0 program milestones based on simulation completion, PCB layout, prototype build, and validation phases.
+  </p>
+
+  <div class="card reveal reveal-d2">
+    <div class="card-title" style="margin-bottom:1.5rem;">Milestone Tracker</div>
+    <div style="display:flex; flex-direction:column; gap:0.85rem;">
+
+      <div class="schedule-row">
+        <div class="sched-phase">SI Simulation</div>
+        <div class="sched-bar-track"><div class="sched-bar-fill sched-done" data-width="100"></div></div>
+        <span class="sched-status s-done">Achieved</span>
+      </div>
+      <div class="schedule-row">
+        <div class="sched-phase">PI Simulation</div>
+        <div class="sched-bar-track"><div class="sched-bar-fill sched-done" data-width="100"></div></div>
+        <span class="sched-status s-done">Achieved</span>
+      </div>
+      <div class="schedule-row">
+        <div class="sched-phase">PCB Layout</div>
+        <div class="sched-bar-track"><div class="sched-bar-fill sched-done" data-width="100"></div></div>
+        <span class="sched-status s-done">Achieved</span>
+      </div>
+      <div class="schedule-row">
+        <div class="sched-phase">LE Optical Design</div>
+        <div class="sched-bar-track"><div class="sched-bar-fill sched-active" data-width="40"></div></div>
+        <span class="sched-status s-active">On-going</span>
+      </div>
+      <div class="schedule-row">
+        <div class="sched-phase">Firmware Dev</div>
+        <div class="sched-bar-track"><div class="sched-bar-fill sched-active" data-width="55"></div></div>
+        <span class="sched-status s-active">On-going</span>
+      </div>
+      <div class="schedule-row">
+        <div class="sched-phase">Prototype Build</div>
+        <div class="sched-bar-track"><div class="sched-bar-fill sched-planned" data-width="0"></div></div>
+        <span class="sched-status s-planned">Planned</span>
+      </div>
+      <div class="schedule-row">
+        <div class="sched-phase">Lab Validation</div>
+        <div class="sched-bar-track"><div class="sched-bar-fill sched-planned" data-width="0"></div></div>
+        <span class="sched-status s-planned">Planned</span>
+      </div>
+      <div class="schedule-row">
+        <div class="sched-phase">Mass Production</div>
+        <div class="sched-bar-track"><div class="sched-bar-fill sched-planned" data-width="0"></div></div>
+        <span class="sched-status s-planned">Planned</span>
+      </div>
+    </div>
+
+    <div style="display:flex; gap:1.5rem; margin-top:1.75rem; padding-top:1.25rem; border-top:1px solid var(--border); flex-wrap:wrap;">
+      <div style="display:flex; align-items:center; gap:6px; font-size:0.8rem; color:var(--text2);">
+        <div style="width:16px; height:4px; background:var(--teal); border-radius:2px;"></div> Achieved
+      </div>
+      <div style="display:flex; align-items:center; gap:6px; font-size:0.8rem; color:var(--text2);">
+        <div style="width:16px; height:4px; background:var(--blue); border-radius:2px;"></div> On-going
+      </div>
+      <div style="display:flex; align-items:center; gap:6px; font-size:0.8rem; color:var(--text2);">
+        <div style="width:16px; height:4px; background:rgba(60,60,100,0.8); border-radius:2px;"></div> Planned
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════ -->
+<!-- Optical Specs -->
+<div class="section-divider"></div>
+<section id="optical">
+  <div class="section-label reveal">Optical Design</div>
+  <h2 class="section-title reveal reveal-d1">Optical Specifications — IEEE 802.3db</h2>
+  <p class="section-desc reveal reveal-d2">
+    TX power window: 0.28 dBm ~ 3.34 dBm derived from simultaneous OMA, ER, TDECQ and OMA-TDECQ compliance per IEEE 802.3db-2022.
+    RX minimum CE of 56.9% required based on MACOM TIA minimum input current.
+  </p>
+
+  <!-- Optical section photo -->
+  <div class="reveal" style="border-radius:8px; overflow:hidden; border:1px solid var(--border); height:160px; position:relative; margin-bottom:2rem; background:#08111f;">
+    <img src="https://www.fibermall.com/blog/wp-content/uploads/2023/08/800g-product-architecture.jpg"
+         alt="800G data center optical interconnect"
+         onerror="this.onerror=null; this.src='https://www.multicominc.com/wp-content/uploads/2023/09/800G-OSFP-2xDR4-1310nm-500m-Dual-MPO-12-Optical-Transceiver.jpg'"
+         style="width:100%; height:100%; object-fit:cover; opacity:0.4; filter:saturate(0.7) hue-rotate(180deg);">
+    <div style="position:absolute; inset:0; display:flex; align-items:center; padding:1.5rem 2rem; gap:3rem; background:linear-gradient(90deg, rgba(5,13,26,0.5) 0%, transparent 60%);">
+      <div>
+        <div style="font-family:'Rajdhani',sans-serif; font-size:1.5rem; font-weight:700; color:var(--head);">Coherent VCSEL + Angled Lens</div>
+        <div style="font-family:'JetBrains Mono',monospace; font-size:0.7rem; color:var(--teal); margin-top:4px;">TX CE: 65~75% · RX CE: min 56.9% · RL: −33dB typical</div>
+      </div>
+      <div style="display:flex; gap:2rem; margin-left:auto;">
+        <div style="text-align:center;">
+          <div style="font-family:'Rajdhani',sans-serif; font-size:1.6rem; font-weight:700; color:var(--amber);">75.6%</div>
+          <div style="font-family:'JetBrains Mono',monospace; font-size:0.6rem; color:var(--text3);">TX CE</div>
+        </div>
+        <div style="text-align:center;">
+          <div style="font-family:'Rajdhani',sans-serif; font-size:1.6rem; font-weight:700; color:var(--green);">85.7%</div>
+          <div style="font-family:'JetBrains Mono',monospace; font-size:0.6rem; color:var(--text3);">RX CE</div>
+        </div>
+        <div style="text-align:center;">
+          <div style="font-family:'Rajdhani',sans-serif; font-size:1.6rem; font-weight:700; color:var(--cyan);">−33dB</div>
+          <div style="font-family:'JetBrains Mono',monospace; font-size:0.6rem; color:var(--text3);">Return Loss</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <!-- TX Optical Spec Table -->
+    <div class="card reveal reveal-d1">
+      <div class="card-title">TX Optical Parameters — 800G SR8 Lane</div>
+      <table class="ic-table" style="margin-top:0.5rem;">
+        <thead>
+          <tr>
+            <th>Parameter</th>
+            <th>IEEE Min</th>
+            <th>Min</th>
+            <th>Typ</th>
+            <th>Max</th>
+            <th>IEEE Max</th>
+            <th>Unit</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>OMA</td>
+            <td style="color:var(--text3);">−2.6</td>
+            <td style="color:var(--amber);">−0.89</td>
+            <td style="color:var(--green);">1.61</td>
+            <td style="color:var(--amber);">3.5</td>
+            <td style="color:var(--text3);">3.5</td>
+            <td style="color:var(--text2);">dBm</td>
+          </tr>
+          <tr>
+            <td>Extinction Ratio</td>
+            <td style="color:var(--text3);">2.5</td>
+            <td style="color:var(--amber);">3.5</td>
+            <td style="color:var(--green);">4</td>
+            <td style="color:var(--amber);">5</td>
+            <td style="color:var(--text3);">—</td>
+            <td style="color:var(--text2);">dB</td>
+          </tr>
+          <tr>
+            <td>Avg TX Power</td>
+            <td style="color:var(--text3);">−4.6</td>
+            <td style="color:var(--amber);">0.28</td>
+            <td style="color:var(--green);">2.26</td>
+            <td style="color:var(--amber);">3.34</td>
+            <td style="color:var(--text3);">—</td>
+            <td style="color:var(--text2);">dBm</td>
+          </tr>
+          <tr>
+            <td>TX Coupling Eff.</td>
+            <td style="color:var(--text3);">—</td>
+            <td style="color:var(--amber);">65%</td>
+            <td style="color:var(--green);">70%</td>
+            <td style="color:var(--amber);">75%</td>
+            <td style="color:var(--text3);">—</td>
+            <td style="color:var(--text2);">CE</td>
+          </tr>
+        </tbody>
+      </table>
+      <div style="margin-top:1rem; padding:0.75rem; background:rgba(232,162,0,0.06); border:1px solid rgba(232,162,0,0.2); border-radius:5px; font-size:0.8rem; color:var(--text2); line-height:1.6;">
+        ⚠ At high temp (85°C), bias current may hit limit. At low temp (25°C), current may need −2.7 mA adjustment.
+        TX lens 3dB coating applied. Out-of-spec risk exists at temperature extremes.
+      </div>
+    </div>
+
+    <!-- RX Optical Spec -->
+    <div class="card reveal reveal-d2">
+      <div class="card-title">RX Receiver Sensitivity — IEEE 802.3db_D3p1</div>
+      <table class="ic-table" style="margin-top:0.5rem;">
+        <thead>
+          <tr>
+            <th>Parameter</th>
+            <th>Typ</th>
+            <th>MAX</th>
+            <th>Unit</th>
+            <th>Remark</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Rx Sensitivity (OMA)</td>
+            <td style="color:var(--green);">−4.6</td>
+            <td style="color:var(--amber);">−3.4</td>
+            <td style="color:var(--text2);">dBm</td>
+            <td style="color:var(--text2);font-size:0.78rem;">BER @ 2.4×10⁻⁴</td>
+          </tr>
+          <tr>
+            <td>Min TIA Input Current</td>
+            <td style="color:var(--green);">—</td>
+            <td style="color:var(--amber);">0.13</td>
+            <td style="color:var(--text2);">mA</td>
+            <td style="color:var(--text2);font-size:0.78rem;">MACOM TIA spec</td>
+          </tr>
+          <tr>
+            <td>PD Responsivity</td>
+            <td style="color:var(--green);">—</td>
+            <td style="color:var(--amber);">0.7</td>
+            <td style="color:var(--text2);">A/W</td>
+            <td style="color:var(--text2);font-size:0.78rem;">Coherent PD</td>
+          </tr>
+          <tr>
+            <td>Min PD Input Power</td>
+            <td style="color:var(--green);">—</td>
+            <td style="color:var(--amber);">0.186</td>
+            <td style="color:var(--text2);">mW</td>
+            <td style="color:var(--text2);font-size:0.78rem;"></td>
+          </tr>
+          <tr>
+            <td>RX Coupling Eff.</td>
+            <td style="color:var(--green);">—</td>
+            <td style="color:var(--amber);">80%</td>
+            <td style="color:var(--text2);">CE</td>
+            <td style="color:var(--text2);font-size:0.78rem;">Min 56.9% required</td>
+          </tr>
+          <tr>
+            <td>Optical Input Power</td>
+            <td style="color:var(--green);">0.23</td>
+            <td style="color:var(--amber);">—</td>
+            <td style="color:var(--text2);">mW</td>
+            <td style="color:var(--text2);font-size:0.78rem;">−6.34 dBm</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div style="margin-top:1rem;">
+        <div style="font-family:'JetBrains Mono',monospace; font-size:0.65rem; color:var(--text3); margin-bottom:0.5rem; text-transform:uppercase; letter-spacing:0.08em;">Lens Coupling Efficiency</div>
+        <div style="display:flex; gap:1.5rem; flex-wrap:wrap;">
+          <div>
+            <div style="font-size:0.78rem; color:var(--text2); margin-bottom:3px;">TX CE (F1)</div>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <div style="height:6px; width:100px; background:rgba(255,255,255,0.06); border-radius:3px; overflow:hidden;">
+                <div class="bar-fill pass" data-width="76" style="height:100%;"></div>
+              </div>
+              <span style="font-family:'JetBrains Mono',monospace; font-size:0.78rem; color:var(--green);">75.61%</span>
+            </div>
+          </div>
+          <div>
+            <div style="font-size:0.78rem; color:var(--text2); margin-bottom:3px;">RX CE (F1)</div>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <div style="height:6px; width:100px; background:rgba(255,255,255,0.06); border-radius:3px; overflow:hidden;">
+                <div class="bar-fill pass" data-width="86" style="height:100%;"></div>
+              </div>
+              <span style="font-family:'JetBrains Mono',monospace; font-size:0.78rem; color:var(--green);">85.69%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- ═══════════════════════════════════════════════ -->
+<!-- CMIS Memory Map -->
+<section id="cmis">
+  <div class="section-label reveal">CMIS 5.2</div>
+  <h2 class="section-title reveal reveal-d1">CMIS Memory Map &amp; Flash Allocation</h2>
+  <p class="section-desc reveal reveal-d2">
+    Full CMIS 5.2 page support with dual-image MCU flash layout. CMIS pages and internal module pages are stored separately to prevent host-side writes from affecting internal state.
+  </p>
+
+  <div class="grid-2">
+    <!-- CMIS Pages -->
+    <div class="card reveal reveal-d1">
+      <div class="card-title">Supported CMIS 5.2 Pages</div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem; margin-top:0.75rem;">
+        <div>
+          <div style="font-family:'JetBrains Mono',monospace; font-size:0.63rem; color:var(--text3); margin-bottom:0.5rem; text-transform:uppercase; letter-spacing:0.08em;">Required Pages</div>
+          <div style="display:flex; flex-direction:column; gap:4px;">
+            <div style="display:flex; align-items:center; justify-content:space-between; padding:4px 8px; background:rgba(29,233,122,0.06); border:1px solid rgba(29,233,122,0.15); border-radius:4px;">
+              <span style="font-family:'JetBrains Mono',monospace; font-size:0.7rem; color:var(--cyan);">Lower Page</span>
+              <span class="pass-badge" style="font-size:0.58rem;">Y</span>
+            </div>
+            <div style="display:flex; align-items:center; justify-content:space-between; padding:4px 8px; background:rgba(29,233,122,0.06); border:1px solid rgba(29,233,122,0.15); border-radius:4px;">
+              <span style="font-family:'JetBrains Mono',monospace; font-size:0.7rem; color:var(--cyan);">Page 00h</span>
+              <span class="pass-badge" style="font-size:0.58rem;">Y</span>
+            </div>
+            <div style="display:flex; align-items:center; justify-content:space-between; padding:4px 8px; background:rgba(29,233,122,0.06); border:1px solid rgba(29,233,122,0.15); border-radius:4px;">
+              <span style="font-family:'JetBrains Mono',monospace; font-size:0.7rem; color:var(--cyan);">Page 01h</span>
+              <span class="pass-badge" style="font-size:0.58rem;">Y</span>
+            </div>
+            <div style="display:flex; align-items:center; justify-content:space-between; padding:4px 8px; background:rgba(29,233,122,0.06); border:1px solid rgba(29,233,122,0.15); border-radius:4px;">
+              <span style="font-family:'JetBrains Mono',monospace; font-size:0.7rem; color:var(--cyan);">Page 02h</span>
+              <span class="pass-badge" style="font-size:0.58rem;">Y</span>
+            </div>
+            <div style="display:flex; align-items:center; justify-content:space-between; padding:4px 8px; background:rgba(29,233,122,0.06); border:1px solid rgba(29,233,122,0.15); border-radius:4px;">
+              <span style="font-family:'JetBrains Mono',monospace; font-size:0.7rem; color:var(--cyan);">Page 03h</span>
+              <span class="pass-badge" style="font-size:0.58rem;">Y</span>
+            </div>
+            <div style="display:flex; align-items:center; justify-content:space-between; padding:4px 8px; background:rgba(29,233,122,0.06); border:1px solid rgba(29,233,122,0.15); border-radius:4px;">
+              <span style="font-family:'JetBrains Mono',monospace; font-size:0.7rem; color:var(--cyan);">Page 10h–11h</span>
+              <span class="pass-badge" style="font-size:0.58rem;">Y</span>
+            </div>
+            <div style="display:flex; align-items:center; justify-content:space-between; padding:4px 8px; background:rgba(29,233,122,0.06); border:1px solid rgba(29,233,122,0.15); border-radius:4px;">
+              <span style="font-family:'JetBrains Mono',monospace; font-size:0.7rem; color:var(--cyan);">Page 13h–14h</span>
+              <span class="pass-badge" style="font-size:0.58rem;">Y</span>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div style="font-family:'JetBrains Mono',monospace; font-size:0.63rem; color:var(--text3); margin-bottom:0.5rem; text-transform:uppercase; letter-spacing:0.08em;">Extended Pages</div>
+          <div style="display:flex; flex-direction:column; gap:4px;">
+            <div style="display:flex; align-items:center; justify-content:space-between; padding:4px 8px; background:rgba(0,210,230,0.05); border:1px solid rgba(0,210,230,0.15); border-radius:4px;">
+              <span style="font-family:'JetBrains Mono',monospace; font-size:0.7rem; color:var(--cyan);">Page 20h–2Fh</span>
+              <span class="pass-badge" style="font-size:0.58rem;">Y</span>
+            </div>
+            <div style="display:flex; align-items:center; justify-content:space-between; padding:4px 8px; background:rgba(0,210,230,0.05); border:1px solid rgba(0,210,230,0.15); border-radius:4px;">
+              <span style="font-family:'JetBrains Mono',monospace; font-size:0.7rem; color:var(--cyan);">Page A0h–AFh</span>
+              <span class="pass-badge" style="font-size:0.58rem;">Y</span>
+            </div>
+            <div style="display:flex; align-items:center; justify-content:space-between; padding:4px 8px; background:rgba(0,210,230,0.05); border:1px solid rgba(0,210,230,0.15); border-radius:4px;">
+              <span style="font-family:'JetBrains Mono',monospace; font-size:0.7rem; color:var(--cyan);">Page B0h–BFh</span>
+              <span class="pass-badge" style="font-size:0.58rem;">Y</span>
+            </div>
+            <div style="display:flex; align-items:center; justify-content:space-between; padding:4px 8px; background:rgba(0,210,230,0.05); border:1px solid rgba(0,210,230,0.15); border-radius:4px;">
+              <span style="font-family:'JetBrains Mono',monospace; font-size:0.7rem; color:var(--cyan);">Page C0h–CFh</span>
+              <span class="pass-badge" style="font-size:0.58rem;">Y</span>
+            </div>
+            <div style="display:flex; align-items:center; justify-content:space-between; padding:4px 8px; background:rgba(0,210,230,0.05); border:1px solid rgba(0,210,230,0.15); border-radius:4px;">
+              <span style="font-family:'JetBrains Mono',monospace; font-size:0.7rem; color:var(--cyan);">Page D0h–D4h</span>
+              <span class="pass-badge" style="font-size:0.58rem;">Y</span>
+            </div>
+            <div style="display:flex; align-items:center; justify-content:space-between; padding:4px 8px; background:rgba(0,210,230,0.05); border:1px solid rgba(0,210,230,0.15); border-radius:4px;">
+              <span style="font-family:'JetBrains Mono',monospace; font-size:0.7rem; color:var(--cyan);">Page E0h–EFh</span>
+              <span class="pass-badge" style="font-size:0.58rem;">Y</span>
+            </div>
+            <div style="display:flex; align-items:center; justify-content:space-between; padding:4px 8px; background:rgba(0,210,230,0.05); border:1px solid rgba(0,210,230,0.15); border-radius:4px;">
+              <span style="font-family:'JetBrains Mono',monospace; font-size:0.7rem; color:var(--cyan);">Page 9Fh</span>
+              <span class="pass-badge" style="font-size:0.58rem;">Y</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Flash Map -->
+    <div class="card reveal reveal-d2">
+      <div class="card-title">MCU Flash Memory Layout</div>
+      <div style="margin-top:0.75rem; display:flex; flex-direction:column; gap:0;">
+
+        <div style="display:flex; align-items:stretch; margin-bottom:2px;">
+          <div style="width:100px; flex-shrink:0; font-family:'JetBrains Mono',monospace; font-size:0.6rem; color:var(--text3); padding:6px 8px 6px 0; text-align:right; border-right:1px solid var(--border);">0x08000000</div>
+          <div style="flex:1; background:rgba(26,111,255,0.12); border:1px solid rgba(26,111,255,0.3); border-radius:4px; margin-left:8px; padding:6px 10px; display:flex; justify-content:space-between; align-items:center;">
+            <span style="font-family:'JetBrains Mono',monospace; font-size:0.72rem; color:#6ea8ff;">Bootloader</span>
+            <span class="mono-tag" style="color:#6ea8ff; border-color:rgba(26,111,255,0.25);">48 KB</span>
+          </div>
+        </div>
+
+        <div style="display:flex; align-items:stretch; margin-bottom:2px;">
+          <div style="width:100px; flex-shrink:0; font-family:'JetBrains Mono',monospace; font-size:0.6rem; color:var(--text3); padding:6px 8px 6px 0; text-align:right; border-right:1px solid var(--border);">0x0800C000</div>
+          <div style="flex:1; background:rgba(0,210,230,0.08); border:1px solid rgba(0,210,230,0.25); border-radius:4px; margin-left:8px; padding:6px 10px; display:flex; justify-content:space-between; align-items:center;">
+            <span style="font-family:'JetBrains Mono',monospace; font-size:0.72rem; color:var(--cyan);">CDB 1 (Active Image)</span>
+            <span class="mono-tag">96 KB</span>
+          </div>
+        </div>
+
+        <div style="display:flex; align-items:stretch; margin-bottom:2px;">
+          <div style="width:100px; flex-shrink:0; font-family:'JetBrains Mono',monospace; font-size:0.6rem; color:var(--text3); padding:6px 8px 6px 0; text-align:right; border-right:1px solid var(--border);"></div>
+          <div style="flex:4; background:rgba(29,233,122,0.08); border:1px solid rgba(29,233,122,0.2); border-radius:4px; margin-left:8px; padding:6px 10px; display:flex; justify-content:space-between; align-items:center;">
+            <span style="font-family:'JetBrains Mono',monospace; font-size:0.72rem; color:var(--green);">Application (Active)</span>
+            <span class="mono-tag" style="color:var(--green); border-color:rgba(29,233,122,0.25);">464 KB</span>
+          </div>
+        </div>
+
+        <div style="display:flex; align-items:stretch; margin-bottom:2px;">
+          <div style="width:100px; flex-shrink:0; font-family:'JetBrains Mono',monospace; font-size:0.6rem; color:var(--text3); padding:6px 8px 6px 0; text-align:right; border-right:1px solid var(--border);"></div>
+          <div style="flex:4; background:rgba(29,233,122,0.05); border:1px solid rgba(29,233,122,0.12); border-radius:4px; margin-left:8px; padding:6px 10px; display:flex; justify-content:space-between; align-items:center;">
+            <span style="font-family:'JetBrains Mono',monospace; font-size:0.72rem; color:var(--green);">CDB 2 (Backup Image)</span>
+            <span class="mono-tag" style="color:var(--green); border-color:rgba(29,233,122,0.2);">464 KB</span>
+          </div>
+        </div>
+
+        <div style="display:flex; align-items:stretch; margin-bottom:2px;">
+          <div style="width:100px; flex-shrink:0; font-family:'JetBrains Mono',monospace; font-size:0.6rem; color:var(--text3); padding:6px 8px 6px 0; text-align:right; border-right:1px solid var(--border);"></div>
+          <div style="flex:4; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:4px; margin-left:8px; padding:6px 10px; display:flex; justify-content:space-between; align-items:center;">
+            <span style="font-family:'JetBrains Mono',monospace; font-size:0.72rem; color:var(--text3);">Reserved</span>
+            <span style="font-family:'JetBrains Mono',monospace; font-size:0.65rem; color:var(--text3);">128 KB</span>
+          </div>
+        </div>
+
+        <div style="display:flex; align-items:stretch; margin-bottom:2px;">
+          <div style="width:100px; flex-shrink:0; font-family:'JetBrains Mono',monospace; font-size:0.6rem; color:var(--text3); padding:6px 8px 6px 0; text-align:right; border-right:1px solid var(--border);">0x081E8000</div>
+          <div style="flex:1; background:rgba(232,162,0,0.08); border:1px solid rgba(232,162,0,0.25); border-radius:4px; margin-left:8px; padding:6px 10px; display:flex; justify-content:space-between; align-items:center;">
+            <span style="font-family:'JetBrains Mono',monospace; font-size:0.72rem; color:var(--amber);">TABLE (CMIS + Module)</span>
+            <span class="mono-tag" style="color:var(--amber); border-color:rgba(232,162,0,0.25);">464 KB</span>
+          </div>
+        </div>
+
+        <div style="display:flex; align-items:stretch;">
+          <div style="width:100px; flex-shrink:0; font-family:'JetBrains Mono',monospace; font-size:0.6rem; color:var(--text3); padding:6px 8px 6px 0; text-align:right; border-right:1px solid var(--border);">0x081FFFFF</div>
+          <div style="flex:1; margin-left:8px; padding:6px 0; font-family:'JetBrains Mono',monospace; font-size:0.6rem; color:var(--text3);">End of Flash</div>
+        </div>
+      </div>
+      <div style="margin-top:1rem; font-size:0.78rem; color:var(--text3); line-height:1.6;">
+        CMIS page data stored separately from internal module pages — prevents host CDB writes from corrupting internal state. N-in-1 firmware package download (APP + DSP + TABLE) supported.
+      </div>
+    </div>
+  </div>
+
+  <!-- CMIS Impl table -->
+  <div class="card gap-top reveal reveal-d3">
+    <div class="card-title">CMIS 5.2 Implementation Summary</div>
+    <table class="ic-table" style="margin-top:0.5rem;">
+      <thead>
+        <tr><th>#</th><th>CMIS 5.2 Section</th><th>Function</th><th>Type</th><th>Impl.</th><th>Remark</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>1</td><td style="color:var(--text2);">Section 8.2</td><td>Lower Memory — Control &amp; Status</td><td><span class="chip-tag">Required</span></td><td style="color:var(--green);">Y</td><td style="color:var(--text2);font-size:0.78rem;">Aux1/2/3: TEC current, Laser Temp</td></tr>
+        <tr><td>2</td><td style="color:var(--text2);">Section 8.3</td><td>Page 00h — Administrative Info</td><td><span class="chip-tag">Required</span></td><td style="color:var(--green);">Y</td><td style="color:var(--text2);font-size:0.78rem;"></td></tr>
+        <tr><td>3</td><td style="color:var(--text2);">Section 8.4</td><td>Page 01h — Advertising</td><td><span class="chip-tag">Required</span></td><td style="color:var(--green);">Y</td><td style="color:var(--text2);font-size:0.78rem;"></td></tr>
+        <tr><td>4</td><td style="color:var(--text2);">Section 8.5</td><td>Page 02h — Threshold Config</td><td><span class="chip-tag">Required</span></td><td style="color:var(--green);">Y</td><td style="color:var(--text2);font-size:0.78rem;"></td></tr>
+        <tr><td>5</td><td style="color:var(--text2);">Section 8.6</td><td>Page 10h — Lane Status</td><td><span class="chip-tag">Required</span></td><td style="color:var(--green);">Y</td><td style="color:var(--text2);font-size:0.78rem;">TX/RX power, bias per lane</td></tr>
+        <tr><td>6</td><td style="color:var(--text2);">Section 8.7</td><td>Page 11h — Lane Control</td><td><span class="chip-tag">Required</span></td><td style="color:var(--green);">Y</td><td style="color:var(--text2);font-size:0.78rem;"></td></tr>
+        <tr><td>7</td><td style="color:var(--text2);">CDB</td><td>Firmware Download / Upgrade</td><td><span class="chip-tag">Optional</span></td><td style="color:var(--green);">Y</td><td style="color:var(--text2);font-size:0.78rem;">Compliant with CMIS 5.2 CDB flow</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- ═══════════════════════════════════════════════ -->
+<!-- FW Flow + I2C -->
+<section id="i2c">
+  <div class="section-label reveal">Communication Protocol</div>
+  <h2 class="section-title reveal reveal-d1">Firmware Flow &amp; I2C Bus Design</h2>
+  <p class="section-desc reveal reveal-d2">
+    Main loop processes module state machine, DataPath state, alarms, DSP configuration, and PRBS diagnostics. I2C bus is split across two masters for speed isolation.
+  </p>
+
+  <div class="grid-2">
+    <!-- FW Main Loop -->
+    <div class="card reveal reveal-d1">
+      <div class="card-title">Firmware Main Loop Flow</div>
+      <div style="margin-top:0.75rem; display:flex; flex-direction:column; gap:0;">
+        <div style="display:flex; align-items:center; gap:0; position:relative;">
+          <div style="width:2px; position:absolute; left:15px; top:28px; bottom:-2px; background:rgba(0,210,230,0.15);"></div>
+          <div style="width:30px; height:30px; border-radius:50%; background:rgba(0,210,230,0.1); border:1px solid rgba(0,210,230,0.3); display:flex; align-items:center; justify-content:center; font-family:'JetBrains Mono',monospace; font-size:0.65rem; color:var(--cyan); flex-shrink:0; z-index:1;">1</div>
+          <div style="margin-left:12px; padding:8px 0;">
+            <div style="font-size:0.88rem; color:var(--head); font-weight:500;">MCU system_init</div>
+            <div style="font-size:0.75rem; color:var(--text2);">Clock, hardware, NVIC priority, BOD33 config</div>
+          </div>
+        </div>
+        <div style="display:flex; align-items:center; gap:0; position:relative;">
+          <div style="width:2px; position:absolute; left:15px; top:28px; bottom:-2px; background:rgba(0,210,230,0.15);"></div>
+          <div style="width:30px; height:30px; border-radius:50%; background:rgba(0,210,230,0.1); border:1px solid rgba(0,210,230,0.3); display:flex; align-items:center; justify-content:center; font-family:'JetBrains Mono',monospace; font-size:0.65rem; color:var(--cyan); flex-shrink:0; z-index:1;">2</div>
+          <div style="margin-left:12px; padding:8px 0;">
+            <div style="font-size:0.88rem; color:var(--head); font-weight:500;">Load parameters</div>
+            <div style="font-size:0.75rem; color:var(--text2);">Flash / EEPROM read + GPIO init</div>
+          </div>
+        </div>
+        <div style="display:flex; align-items:center; gap:0; position:relative;">
+          <div style="width:2px; position:absolute; left:15px; top:28px; bottom:-2px; background:rgba(0,210,230,0.15);"></div>
+          <div style="width:30px; height:30px; border-radius:50%; background:rgba(26,111,255,0.12); border:1px solid rgba(26,111,255,0.3); display:flex; align-items:center; justify-content:center; font-family:'JetBrains Mono',monospace; font-size:0.65rem; color:#6ea8ff; flex-shrink:0; z-index:1;">3</div>
+          <div style="margin-left:12px; padding:8px 0;">
+            <div style="font-size:0.88rem; color:var(--head); font-weight:500;">Module State Machine</div>
+            <div style="font-size:0.75rem; color:var(--text2);">DataPath state machine — CMIS 5.2 compliant</div>
+          </div>
+        </div>
+        <div style="display:flex; align-items:center; gap:0; position:relative;">
+          <div style="width:2px; position:absolute; left:15px; top:28px; bottom:-2px; background:rgba(0,210,230,0.15);"></div>
+          <div style="width:30px; height:30px; border-radius:50%; background:rgba(26,111,255,0.12); border:1px solid rgba(26,111,255,0.3); display:flex; align-items:center; justify-content:center; font-family:'JetBrains Mono',monospace; font-size:0.65rem; color:#6ea8ff; flex-shrink:0; z-index:1;">4</div>
+          <div style="margin-left:12px; padding:8px 0;">
+            <div style="font-size:0.88rem; color:var(--head); font-weight:500;">Module Monitor</div>
+            <div style="font-size:0.75rem; color:var(--text2);">Alarm/Warning/LOS/LOL flags, PM monitor, Diagnostic</div>
+          </div>
+        </div>
+        <div style="display:flex; align-items:center; gap:0; position:relative;">
+          <div style="width:2px; position:absolute; left:15px; top:28px; bottom:-2px; background:rgba(0,210,230,0.15);"></div>
+          <div style="width:30px; height:30px; border-radius:50%; background:rgba(232,162,0,0.1); border:1px solid rgba(232,162,0,0.25); display:flex; align-items:center; justify-content:center; font-family:'JetBrains Mono',monospace; font-size:0.65rem; color:var(--amber); flex-shrink:0; z-index:1;">5</div>
+          <div style="margin-left:12px; padding:8px 0;">
+            <div style="font-size:0.88rem; color:var(--head); font-weight:500;">DSP Operation</div>
+            <div style="font-size:0.75rem; color:var(--text2);">DSP param flag check → configuration via I2C</div>
+          </div>
+        </div>
+        <div style="display:flex; align-items:center; gap:0;">
+          <div style="width:30px; height:30px; border-radius:50%; background:rgba(29,233,122,0.1); border:1px solid rgba(29,233,122,0.25); display:flex; align-items:center; justify-content:center; font-family:'JetBrains Mono',monospace; font-size:0.65rem; color:var(--green); flex-shrink:0; z-index:1;">6</div>
+          <div style="margin-left:12px; padding:8px 0;">
+            <div style="font-size:0.88rem; color:var(--head); font-weight:500;">PRBS / Diagnostics</div>
+            <div style="font-size:0.75rem; color:var(--text2);">Settings flags → PRBS set and check → Main loop repeat</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- I2C Bus Map -->
+    <div class="card reveal reveal-d2">
+      <div class="card-title">I2C Address Map</div>
+      <table class="ic-table" style="margin-top:0.5rem;">
+        <thead>
+          <tr><th>Bus</th><th>IC</th><th>Type</th><th>Speed</th><th>Address (8-bit)</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="chip-tag" style="color:var(--teal); border-color:rgba(0,180,156,0.25);">Master 1</span></td>
+            <td>M24C16</td>
+            <td style="color:var(--text2);">EEPROM</td>
+            <td style="font-family:'JetBrains Mono',monospace; font-size:0.75rem;">400K/100K</td>
+            <td style="font-family:'JetBrains Mono',monospace; font-size:0.75rem; color:var(--cyan);">0xA0–0xAE</td>
+          </tr>
+          <tr>
+            <td><span class="chip-tag" style="color:var(--teal); border-color:rgba(0,180,156,0.25);">Master 1</span></td>
+            <td>MATA-40734</td>
+            <td style="color:var(--text2);">TIA ×2</td>
+            <td style="font-family:'JetBrains Mono',monospace; font-size:0.75rem;">400K/100K</td>
+            <td style="font-family:'JetBrains Mono',monospace; font-size:0.75rem; color:var(--cyan);">TBD</td>
+          </tr>
+          <tr>
+            <td><span class="chip-tag" style="color:var(--teal); border-color:rgba(0,180,156,0.25);">Master 1</span></td>
+            <td>DAC / IDAC</td>
+            <td style="color:var(--text2);">Analog ctrl</td>
+            <td style="font-family:'JetBrains Mono',monospace; font-size:0.75rem;">400K/100K</td>
+            <td style="font-family:'JetBrains Mono',monospace; font-size:0.75rem; color:var(--cyan);">TBD</td>
+          </tr>
+          <tr>
+            <td><span class="chip-tag" style="color:#6ea8ff; border-color:rgba(26,111,255,0.25);">Master 2</span></td>
+            <td>NOVA2 DSP ×2</td>
+            <td style="color:var(--text2);">DSP config</td>
+            <td style="font-family:'JetBrains Mono',monospace; font-size:0.75rem;">1 MHz</td>
+            <td style="font-family:'JetBrains Mono',monospace; font-size:0.75rem; color:var(--cyan);">Addr 0</td>
+          </tr>
+          <tr>
+            <td><span class="chip-tag" style="color:var(--amber); border-color:rgba(232,162,0,0.25);">Slave</span></td>
+            <td>MCU (Host IF)</td>
+            <td style="color:var(--text2);">CMIS host</td>
+            <td style="font-family:'JetBrains Mono',monospace; font-size:0.75rem;">I3C 12.5MHz</td>
+            <td style="font-family:'JetBrains Mono',monospace; font-size:0.75rem; color:var(--cyan);">I2C/I3C</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div style="margin-top:1.25rem;">
+        <div style="font-family:'JetBrains Mono',monospace; font-size:0.63rem; color:var(--text3); text-transform:uppercase; letter-spacing:0.08em; margin-bottom:0.5rem;">CDB Firmware Download Protocol</div>
+        <div style="display:flex; gap:0.4rem; flex-wrap:wrap; align-items:center;">
+          <div style="background:rgba(0,210,230,0.08); border:1px solid rgba(0,210,230,0.2); border-radius:4px; padding:5px 10px; font-family:'JetBrains Mono',monospace; font-size:0.7rem; color:var(--cyan);">① Identify</div>
+          <span style="color:var(--text3); font-size:0.7rem;">→</span>
+          <div style="background:rgba(0,210,230,0.08); border:1px solid rgba(0,210,230,0.2); border-radius:4px; padding:5px 10px; font-family:'JetBrains Mono',monospace; font-size:0.7rem; color:var(--cyan);">② Start</div>
+          <span style="color:var(--text3); font-size:0.7rem;">→</span>
+          <div style="background:rgba(26,111,255,0.08); border:1px solid rgba(26,111,255,0.25); border-radius:4px; padding:5px 10px; font-family:'JetBrains Mono',monospace; font-size:0.7rem; color:#6ea8ff;">③ Write Blocks</div>
+          <span style="color:var(--text3); font-size:0.7rem;">→</span>
+          <div style="background:rgba(29,233,122,0.08); border:1px solid rgba(29,233,122,0.2); border-radius:4px; padding:5px 10px; font-family:'JetBrains Mono',monospace; font-size:0.7rem; color:var(--green);">④ Complete</div>
+        </div>
+        <div style="margin-top:0.75rem; font-size:0.78rem; color:var(--text3); line-height:1.6;">
+          Run CMD 0109h → hitless reset → bootloader copies new image → jumps to active image. Compliant with CMIS 5.2 CDB download flow. Includes N-in-1 package: APP + DSP + TABLE.
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- Footer -->
+<footer>
+  <span>1.6T OSFP SR8 Design Proposal · Rev 1.0 · February 2025</span>
+  <span style="color:var(--text3);">CONFIDENTIAL · Internal Distribution Only</span>
+  <span style="color:var(--red); font-size:0.6rem; border:1px solid rgba(255,77,106,0.3); padding:2px 8px; border-radius:3px;">NOT FOR EXTERNAL RELEASE</span>
+</footer>
+
+<script>
+  // ── Canvas Background: Circuit Traces + Particles ──
+  const canvas = document.getElementById('bg-canvas');
+  const ctx = canvas.getContext('2d');
+
+  let W, H, nodes = [], pulses = [];
+
+  function resize() {
+    W = canvas.width = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  function randInt(a, b) { return Math.floor(Math.random() * (b - a) + a); }
+
+  function buildNodes() {
+    nodes = [];
+    const cols = Math.ceil(W / 80) + 1;
+    const rows = Math.ceil(H / 80) + 1;
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        if (Math.random() < 0.55) {
+          nodes.push({
+            x: c * 80 + randInt(-12, 12),
+            y: r * 80 + randInt(-12, 12),
+            r: Math.random() < 0.06 ? 2.5 : 1.2,
+            alpha: Math.random() * 0.5 + 0.15
+          });
+        }
+      }
+    }
+  }
+  buildNodes();
+
+  function buildPulse() {
+    if (nodes.length < 2) return;
+    const from = nodes[randInt(0, nodes.length)];
+    const candidates = nodes.filter(n => {
+      const d = Math.hypot(n.x - from.x, n.y - from.y);
+      return d > 60 && d < 200;
+    });
+    if (!candidates.length) return;
+    const to = candidates[randInt(0, candidates.length)];
+    pulses.push({ x: from.x, y: from.y, tx: to.x, ty: to.y, t: 0, speed: Math.random() * 0.008 + 0.006 });
+  }
+
+  setInterval(buildPulse, 180);
+
+  let lines = [];
+  function buildLines() {
+    lines = [];
+    for (let i = 0; i < nodes.length; i++) {
+      for (let j = i + 1; j < nodes.length; j++) {
+        const d = Math.hypot(nodes[i].x - nodes[j].x, nodes[i].y - nodes[j].y);
+        if (d < 120 && Math.random() < 0.35) {
+          lines.push([i, j, d]);
+        }
+      }
+    }
+  }
+  buildLines();
+
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+
+    ctx.strokeStyle = 'rgba(0,180,156,0.12)';
+    ctx.lineWidth = 0.5;
+    for (const [i, j] of lines) {
+      ctx.beginPath();
+      ctx.moveTo(nodes[i].x, nodes[i].y);
+      ctx.lineTo(nodes[j].x, nodes[j].y);
+      ctx.stroke();
+    }
+
+    for (const n of nodes) {
+      ctx.beginPath();
+      ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(0,210,230,${n.alpha})`;
+      ctx.fill();
+    }
+
+    pulses = pulses.filter(p => p.t < 1);
+    for (const p of pulses) {
+      const x = p.x + (p.tx - p.x) * p.t;
+      const y = p.y + (p.ty - p.y) * p.t;
+      const grad = ctx.createRadialGradient(x, y, 0, x, y, 5);
+      grad.addColorStop(0, 'rgba(0,245,255,0.9)');
+      grad.addColorStop(1, 'rgba(0,245,255,0)');
+      ctx.beginPath();
+      ctx.arc(x, y, 5, 0, Math.PI * 2);
+      ctx.fillStyle = grad;
+      ctx.fill();
+      p.t += p.speed;
+    }
+
+    requestAnimationFrame(draw);
+  }
+  draw();
+
+  // ── Intersection Observer: reveal + bars ──
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add('visible');
+        // animate bars inside this element
+        e.target.querySelectorAll('.bar-fill[data-width], .sched-bar-fill[data-width]').forEach(bar => {
+          setTimeout(() => { bar.style.width = bar.dataset.width + '%'; }, 200);
+        });
+        observer.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.12 });
+
+  document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+  // Also observe sim-cards and cards for bars
+  document.querySelectorAll('.sim-card, .card').forEach(el => {
+    const barObserver = new IntersectionObserver((entries) => {
+      entries.forEach(e => {
+        if (e.isIntersecting) {
+          e.target.querySelectorAll('.bar-fill[data-width], .sched-bar-fill[data-width]').forEach((bar, i) => {
+            setTimeout(() => { bar.style.width = bar.dataset.width + '%'; }, 150 + i * 80);
+          });
+          barObserver.unobserve(e.target);
+        }
+      });
+    }, { threshold: 0.3 });
+    barObserver.observe(el);
+  });
+
+  // ── Nav active state on scroll ──
+  const sections = document.querySelectorAll('section[id]');
+  const navLinks = document.querySelectorAll('nav ul li a');
+
+  const sectionObs = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        navLinks.forEach(a => a.classList.remove('active'));
+        const link = document.querySelector(`nav a[href="#${e.target.id}"]`);
+        if (link) link.classList.add('active');
+      }
+    });
+  }, { rootMargin: '-40% 0px -55% 0px' });
+
+  sections.forEach(s => sectionObs.observe(s));
+</script>
+</body>
+</html>
